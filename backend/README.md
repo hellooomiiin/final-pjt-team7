@@ -80,8 +80,15 @@ python manage.py runserver
 
 ### 인증 (accounts)
 - `POST /api/v1/accounts/register/` - 회원가입
-- `POST /api/v1/accounts/login/` - 로그인
+  - 요청: `{ username, email, nickname, password, password_confirm }`
+  - 응답: `{ user, tokens: { access, refresh } }`
+- `POST /api/v1/accounts/login/` - 로그인 (이메일 기반)
+  - 요청: `{ email, password }`
+  - 응답: `{ user, tokens: { access, refresh } }`
 - `GET /api/v1/accounts/profile/` - 프로필 조회 (인증 필요)
+  - 응답: `{ id, username, email, nickname, profile_image, created_at }`
+- `PUT /api/v1/accounts/profile/` - 프로필 수정 (인증 필요)
+- `PATCH /api/v1/accounts/profile/` - 프로필 부분 수정 (인증 필요)
 - `PUT /api/v1/accounts/profile/update/` - 프로필 수정 (인증 필요)
 - `POST /api/v1/accounts/token/refresh/` - JWT 토큰 갱신
 
@@ -106,9 +113,19 @@ python manage.py runserver
 - http://localhost:8000/api/v1/
 - Django Admin: http://localhost:8000/admin/ (슈퍼유저 필요)
 
+## 최근 업데이트 내역
+
+### 2024년 업데이트
+- ✅ **로그인 시스템**: email 기반 인증으로 변경 (기존 username 기반에서 변경)
+- ✅ **회원 정보 API**: 프로필 조회/수정 API 완료
+  - `GET /api/v1/accounts/profile/` - 프로필 조회
+  - `PUT/PATCH /api/v1/accounts/profile/` - 프로필 수정
+- ✅ **인증 로직**: `authenticate()` 대신 email로 직접 사용자 조회 후 `check_password()` 사용
+
 ## 주의사항
 
 1. **개발 서버 경고**: `runserver`는 개발용입니다. 프로덕션 환경에서는 Gunicorn, uWSGI 등의 WSGI 서버를 사용하세요.
 2. **CORS 설정**: 프론트엔드와 백엔드가 다른 포트에서 실행되므로 `django-cors-headers`가 설정되어 있습니다.
 3. **환경 변수**: `.env` 파일은 절대 공개 저장소에 커밋하지 마세요.
+4. **가상환경**: venv 가상환경 사용을 권장합니다. `.gitignore`에 포함되어 있어 커밋되지 않습니다.
 

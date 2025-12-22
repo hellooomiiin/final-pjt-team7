@@ -8,14 +8,14 @@
             <p class="login-subtitle">Mood-Match에 오신 것을 환영합니다</p>
             <form @submit.prevent="handleLogin">
               <div class="form-group mb-3">
-                <label for="username" class="form-label">이메일</label>
+                <label for="email" class="form-label">이메일</label>
                 <div class="input-wrapper">
                   <span class="input-icon">✉️</span>
                   <input
-                    type="text"
+                    type="email"
                     class="form-control"
-                    id="username"
-                    v-model="username"
+                    id="email"
+                    v-model="email"
                     placeholder="example@email.com"
                     required
                   />
@@ -70,14 +70,14 @@ export default {
   setup() {
     const router = useRouter()
     const authStore = useAuthStore()
-    const username = ref('')
+    const email = ref('')
     const password = ref('')
     const error = ref('')
     const rememberMe = ref(false)
 
     const handleLogin = async () => {
       error.value = ''
-      const result = await authStore.login(username.value, password.value)
+      const result = await authStore.login(email.value, password.value)
       
       if (result.success) {
         router.push('/')
@@ -87,7 +87,7 @@ export default {
     }
 
     return {
-      username,
+      email,
       password,
       error,
       rememberMe,

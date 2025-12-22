@@ -104,9 +104,10 @@ npm run dev
 
 ### 1. 사용자 인증
 - 회원가입 (이름, 닉네임, 이메일, 비밀번호)
-- 로그인 (이메일 기반)
-- JWT 토큰 기반 인증
+- 로그인 (이메일 기반 인증)
+- JWT 토큰 기반 인증 (Access Token, Refresh Token)
 - 프로필 조회/수정
+- 로그아웃 기능
 
 ### 2. 영화 데이터
 - 인기 영화 목록 조회
@@ -149,9 +150,14 @@ npm run dev
 ### 인증 (accounts)
 - `POST /api/v1/accounts/register/` - 회원가입
   - 요청: `{ username, email, nickname, password, password_confirm }`
-- `POST /api/v1/accounts/login/` - 로그인
-  - 요청: `{ username, password }`
+  - 응답: `{ user, tokens: { access, refresh } }`
+- `POST /api/v1/accounts/login/` - 로그인 (이메일 기반)
+  - 요청: `{ email, password }`
+  - 응답: `{ user, tokens: { access, refresh } }`
 - `GET /api/v1/accounts/profile/` - 프로필 조회 (인증 필요)
+  - 응답: `{ id, username, email, nickname, profile_image, created_at }`
+- `PUT /api/v1/accounts/profile/` - 프로필 수정 (인증 필요)
+- `PATCH /api/v1/accounts/profile/` - 프로필 부분 수정 (인증 필요)
 - `PUT /api/v1/accounts/profile/update/` - 프로필 수정 (인증 필요)
 - `POST /api/v1/accounts/token/refresh/` - 토큰 갱신
 
@@ -168,9 +174,10 @@ npm run dev
 - 인기 영화 카드 클릭 시 영화 상세 페이지로 이동
 
 ### 2. 로그인 페이지 (/login)
-- 이메일과 비밀번호로 로그인
+- 이메일과 비밀번호로 로그인 (이메일 기반 인증)
 - JWT 토큰 기반 인증
 - 로그인 성공 시 홈으로 리다이렉트
+- 로그인 실패 시 에러 메시지 표시 (리다이렉트 없음)
 
 ### 3. 회원가입 페이지 (/register)
 - 이름, 닉네임, 이메일, 비밀번호 입력
@@ -194,11 +201,21 @@ npm run dev
 - 리뷰 카드에 작성자, 작성일, 평점, 좋아요 수 표시
 - 뒤로가기 버튼
 
+## 최근 업데이트 내역
+
+### 2024년 업데이트
+- ✅ **로그인 시스템 개선**: username 기반에서 email 기반 인증으로 변경
+- ✅ **회원 정보 API**: 프로필 조회/수정 API 완료
+- ✅ **로그아웃 기능**: NavBar에 로그아웃 버튼 추가 및 기능 구현
+- ✅ **API 인터셉터 개선**: 로그인/회원가입 API는 인터셉터에서 제외하여 리다이렉트 문제 해결
+- ✅ **가상환경 설정**: venv 가상환경 사용 권장 (`.gitignore`에 포함)
+
 ## 주의사항
 
 1. **API 키 보안**: TMDB API 키는 `.env` 파일에 저장하고 절대 공개 저장소에 커밋하지 마세요.
 2. **CORS 설정**: 프론트엔드와 백엔드가 다른 포트에서 실행되므로 CORS 설정이 필요합니다.
 3. **환경 변수**: `.env.example` 파일을 참고하여 `.env` 파일을 생성하세요.
+4. **가상환경**: 백엔드 개발 시 venv 가상환경 사용을 권장합니다.
 
 ## 참고 사이트
 

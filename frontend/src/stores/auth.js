@@ -14,15 +14,15 @@ export const useAuthStore = defineStore('auth', () => {
 
   const isAuthenticated = computed(() => !!token.value)
 
-  const login = async (username, password) => {
+  const login = async (email, password) => {
     if (MOCK_MODE) {
       await delay(500)
       // 간단한 모킹: 아무 아이디/비밀번호로 로그인 가능
-      if (username && password) {
+      if (email && password) {
         const mockUser = {
           id: 1,
-          email: username,
-          nickname: username.split('@')[0],
+          email: email,
+          nickname: email.split('@')[0],
           created_at: '2024-01-01T00:00:00Z'
         }
         token.value = 'mock_access_token_' + Date.now()
@@ -36,15 +36,15 @@ export const useAuthStore = defineStore('auth', () => {
       } else {
         return { 
           success: false, 
-          error: '아이디와 비밀번호를 입력해주세요.' 
+          error: '이메일과 비밀번호를 입력해주세요.' 
         }
       }
     }
     
-    // 실제 API 호출 (현재 사용 안 함)
+    // 실제 API 호출
     try {
       const api = (await import('@/api')).default
-      const response = await api.post('/accounts/login/', { username, password })
+      const response = await api.post('/accounts/login/', { email, password })
       token.value = response.data.tokens.access
       refreshToken.value = response.data.tokens.refresh
       user.value = response.data.user

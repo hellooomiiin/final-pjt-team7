@@ -35,18 +35,26 @@ class UserRegistrationView(generics.CreateAPIView):
 @api_view(['POST'])
 @permission_classes([permissions.AllowAny])
 def login_view(request):
-    username = request.data.get('username')
+    email = request.data.get('email')
     password = request.data.get('password')
     
-    if not username or not password:
+    if not email or not password:
         return Response(
-            {'error': '아이디와 비밀번호를 입력해주세요.'},
+            {'error': '이메일과 비밀번호를 입력해주세요.'},
             status=status.HTTP_400_BAD_REQUEST
         )
     
-    user = authenticate(username=username, password=password)
+    try:
+        # email로 사용자 찾기
+        user = User.objects.get(email=email)
+    except User.DoesNotExist:
+        return Response(
+            {'error': '이메일 또는 비밀번호가 올바르지 않습니다.'},
+            status=status.HTTP_401_UNAUTHORIZED
+        )
     
-    if user:
+    # 비밀번호 검증
+    if user.check_password(password) and user.is_active:
         refresh = RefreshToken.for_user(user)
         return Response({
             'user': UserSerializer(user).data,
@@ -57,7 +65,7 @@ def login_view(request):
         }, status=status.HTTP_200_OK)
     else:
         return Response(
-            {'error': '아이디 또는 비밀번호가 올바르지 않습니다.'},
+            {'error': '이메일 또는 비밀번호가 올바르지 않습니다.'},
             status=status.HTTP_401_UNAUTHORIZED
         )
 

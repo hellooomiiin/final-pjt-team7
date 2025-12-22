@@ -26,6 +26,9 @@
           <li v-if="!authStore.isAuthenticated" class="nav-item">
             <router-link class="nav-link btn-register" to="/register">회원가입</router-link>
           </li>
+          <li v-if="authStore.isAuthenticated" class="nav-item">
+            <button class="nav-link btn-logout" @click="handleLogout">로그아웃</button>
+          </li>
         </ul>
       </div>
     </div>
@@ -34,14 +37,22 @@
 
 <script>
 import { useAuthStore } from '@/stores/auth'
+import { useRouter } from 'vue-router'
 
 export default {
   name: 'NavBar',
   setup() {
     const authStore = useAuthStore()
+    const router = useRouter()
+
+    const handleLogout = () => {
+      authStore.logout()
+      router.push('/')
+    }
 
     return {
-      authStore
+      authStore,
+      handleLogout
     }
   }
 }
@@ -81,6 +92,21 @@ export default {
   border: 1px solid #000000;
   background-color: #ffffff;
   color: #000000;
+}
+
+.btn-logout {
+  border: none;
+  background-color: transparent;
+  color: #000000;
+  padding: 0.5rem 1rem;
+  margin-left: 0.5rem;
+  cursor: pointer;
+  font-size: inherit;
+}
+
+.btn-logout:hover {
+  color: #000000;
+  text-decoration: underline;
 }
 </style>
 
