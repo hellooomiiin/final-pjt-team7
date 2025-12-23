@@ -1,12 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 
-// 모킹 모드 (백엔드 통신 없이 사용)
-const MOCK_MODE = false
-
-// 모킹 지연 함수
-const delay = (ms = 500) => new Promise(resolve => setTimeout(resolve, ms))
-
 export const useAuthStore = defineStore('auth', () => {
   const user = ref(null)
   const token = ref(localStorage.getItem('access_token') || null)
@@ -15,33 +9,6 @@ export const useAuthStore = defineStore('auth', () => {
   const isAuthenticated = computed(() => !!token.value)
 
   const login = async (email, password) => {
-    if (MOCK_MODE) {
-      await delay(500)
-      // 간단한 모킹: 아무 아이디/비밀번호로 로그인 가능
-      if (email && password) {
-        const mockUser = {
-          id: 1,
-          email: email,
-          nickname: email.split('@')[0],
-          created_at: '2024-01-01T00:00:00Z'
-        }
-        token.value = 'mock_access_token_' + Date.now()
-        refreshToken.value = 'mock_refresh_token_' + Date.now()
-        user.value = mockUser
-        
-        localStorage.setItem('access_token', token.value)
-        localStorage.setItem('refresh_token', refreshToken.value)
-        
-        return { success: true }
-      } else {
-        return { 
-          success: false, 
-          error: '이메일과 비밀번호를 입력해주세요.' 
-        }
-      }
-    }
-    
-    // 실제 API 호출
     try {
       const api = (await import('@/api')).default
       const response = await api.post('/accounts/login/', { email, password })
@@ -62,37 +29,17 @@ export const useAuthStore = defineStore('auth', () => {
   }
 
   const register = async (userData) => {
-    if (MOCK_MODE) {
-      await delay(500)
-      // 간단한 모킹: 회원가입 항상 성공
-      const mockUser = {
-        id: Date.now(),
+    try {
+      const api = (await import('@/api')).default
+      
+      const registerData = {
+        username: userData.username,
         email: userData.email,
         nickname: userData.nickname,
-        created_at: new Date().toISOString()
+        password: userData.password,
+        password_confirm: userData.password_confirm
       }
-      token.value = 'mock_access_token_' + Date.now()
-      refreshToken.value = 'mock_refresh_token_' + Date.now()
-      user.value = mockUser
-      
-      localStorage.setItem('access_token', token.value)
-      localStorage.setItem('refresh_token', refreshToken.value)
-      
-      return { success: true }
-    }
     
-      // 실제 API 호출
-      try {
-        const api = (await import('@/api')).default
-        
-        const registerData = {
-          username: userData.username,
-          email: userData.email,
-          nickname: userData.nickname,
-          password: userData.password,
-          password_confirm: userData.password_confirm
-        }
-      
       const response = await api.post('/accounts/register/', registerData)
       
       if (response.data && response.data.tokens) {
@@ -157,21 +104,6 @@ export const useAuthStore = defineStore('auth', () => {
   }
 
   const fetchProfile = async () => {
-    if (MOCK_MODE) {
-      await delay(300)
-      if (token.value) {
-        user.value = {
-          id: 1,
-          email: 'test@test.com',
-          nickname: 'testuser',
-          created_at: '2024-01-01T00:00:00Z'
-        }
-        return { success: true }
-      }
-      return { success: false, error: '로그인이 필요합니다.' }
-    }
-    
-    // 실제 API 호출 (현재 사용 안 함)
     try {
       const api = (await import('@/api')).default
       const response = await api.get('/accounts/profile/')

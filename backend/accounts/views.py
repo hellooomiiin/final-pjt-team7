@@ -49,12 +49,12 @@ def login_view(request):
         user = User.objects.get(email=email)
     except User.DoesNotExist:
         return Response(
-            {'error': '이메일 또는 비밀번호가 올바르지 않습니다.'},
+            {'error': '이메일이 올바르지 않습니다.'},
             status=status.HTTP_401_UNAUTHORIZED
         )
     
     # 비밀번호 검증
-    if user.check_password(password) and user.is_active:
+    if user.check_password(password):
         refresh = RefreshToken.for_user(user)
         return Response({
             'user': UserSerializer(user).data,
@@ -65,7 +65,7 @@ def login_view(request):
         }, status=status.HTTP_200_OK)
     else:
         return Response(
-            {'error': '이메일 또는 비밀번호가 올바르지 않습니다.'},
+            {'error': '비밀번호가 올바르지 않습니다.'},
             status=status.HTTP_401_UNAUTHORIZED
         )
 

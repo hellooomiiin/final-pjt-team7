@@ -51,7 +51,7 @@ api.interceptors.response.use(
         authStore.logout()
         // 로그인 페이지가 아닐 때만 리다이렉트
         if (window.location.pathname !== '/login') {
-          window.location.href = '/login'
+          window.location.href = '/login?logout=expired'
         }
         return Promise.reject(refreshError)
       }

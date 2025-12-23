@@ -42,6 +42,9 @@
                 </label>
                 <a href="#" class="forgot-password">비밀번호 찾기</a>
               </div>
+              <div v-if="showLogoutMessage" class="alert alert-warning" role="alert">
+                세션이 만료되어 자동으로 로그아웃되었습니다. 다시 로그인해주세요.
+              </div>
               <div v-if="error" class="alert alert-danger" role="alert">
                 {{ error }}
               </div>
@@ -61,22 +64,34 @@
 </template>
 
 <script>
-import { ref } from 'vue'
-import { useRouter } from 'vue-router'
+import { ref, onMounted } from 'vue'
+import { useRouter, useRoute } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 
 export default {
   name: 'LoginView',
   setup() {
     const router = useRouter()
+    const route = useRoute()
     const authStore = useAuthStore()
     const email = ref('')
     const password = ref('')
     const error = ref('')
     const rememberMe = ref(false)
+    const showLogoutMessage = ref(false)
+
+    // URL 쿼리 파라미터 확인
+    onMounted(() => {
+      if (route.query.logout === 'expired') {
+        showLogoutMessage.value = true
+        // 쿼리 파라미터 제거
+        router.replace({ query: {} })
+      }
+    })
 
     const handleLogin = async () => {
       error.value = ''
+      showLogoutMessage.value = false
       const result = await authStore.login(email.value, password.value)
       
       if (result.success) {
@@ -91,6 +106,7 @@ export default {
       password,
       error,
       rememberMe,
+      showLogoutMessage,
       handleLogin
     }
   }
@@ -218,6 +234,12 @@ export default {
 .alert-danger {
   background-color: #ffffff;
   border: 1px solid #000000;
-  color: #000000;
+  color: #dc3545;
+}
+
+.alert-warning {
+  background-color: #ffffff;
+  border: 1px solid #000000;
+  color: #856404;
 }
 </style>
