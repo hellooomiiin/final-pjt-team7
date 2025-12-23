@@ -1,262 +1,155 @@
 <template>
   <div class="movie-detail-container">
-    <div class="container">
-      <div v-if="loading" class="text-center loading-spinner">
+    <div class="container py-5">
+      <div v-if="loading" class="text-center loading-spinner py-5">
         <div class="spinner-border text-danger" role="status">
           <span class="visually-hidden">Loading...</span>
         </div>
       </div>
+
       <div v-else-if="movie" class="movie-detail">
         <div class="row">
-          <div class="col-md-4">
+          <div class="col-md-4 mb-4">
             <img
-              :src="movie.poster_path || '/placeholder.jpg'"
-              class="movie-poster-large"
+              :src="getImageUrl(movie.poster_path, 'poster')"
+              class="movie-poster-large img-fluid rounded shadow"
               :alt="movie.title"
             />
           </div>
+          
           <div class="col-md-8">
-            <h1 class="movie-title">{{ movie.title }}</h1>
-            <p v-if="movie.original_title" class="movie-original-title">
+            <h1 class="movie-title fw-bold">{{ movie.title }}</h1>
+            <p v-if="movie.original_title" class="movie-original-title text-muted fs-5">
               {{ movie.original_title }}
             </p>
-            <div class="movie-info">
-              <p v-if="movie.overview" class="movie-overview">{{ movie.overview }}</p>
-              <div class="movie-meta">
-                <span v-if="movie.release_date" class="meta-item">
+            
+            <div class="movie-info mt-4">
+              <p v-if="movie.overview" class="movie-overview lead">{{ movie.overview }}</p>
+              
+              <div class="movie-meta d-flex flex-wrap gap-3 my-3">
+                <span v-if="movie.release_date" class="badge bg-dark px-3 py-2">
                   개봉일: {{ movie.release_date }}
                 </span>
-                <span v-if="movie.vote_average" class="meta-item">
-                  평점: {{ movie.vote_average }}/10
+                <span v-if="movie.runtime" class="badge bg-dark px-3 py-2">
+                  상영시간: {{ movie.runtime }}분
                 </span>
-                <span v-if="movie.popularity" class="meta-item">
-                  인기도: {{ movie.popularity }}
+                <span v-if="movie.vote_average" class="badge bg-warning text-dark px-3 py-2">
+                  평점: ★ {{ movie.vote_average.toFixed(1) }}
+                </span>
+                <span v-if="movie.popularity" class="badge bg-info text-dark px-3 py-2">
+                  인기도: {{ movie.popularity.toFixed(0) }}
+                </span>
+              </div>
+
+              <div class="people-info mt-4 p-3 bg-light rounded">
+                <div v-if="movie.director" class="mb-3">
+                  <span class="fw-bold">감독:</span> <span class="ms-2 text-primary">{{ movie.director }}</span>
+                </div>
+
+                <div v-if="movie.actors && movie.actors.length" class="actors-list">
+                  <p class="fw-bold mb-2">출연진</p>
+                  <div class="d-flex flex-wrap gap-3 mt-2">
+                    <div v-for="actor in movie.actors.slice(0, 5)" :key="actor.name" class="actor-card text-center" style="width: 80px;">
+                      <img 
+                        :src="getImageUrl(actor.profile_path, 'actor')" 
+                        class="actor-img rounded-circle mb-1" 
+                        style="width: 60px; height: 60px; object-fit: cover;"
+                        alt="actor"
+                      >
+                      <div class="actor-name small fw-bold text-truncate">{{ actor.name }}</div>
+                      <div class="actor-char text-muted text-truncate" style="font-size: 0.7rem;">{{ actor.character }}</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div v-if="movie.genres && movie.genres.length" class="mt-4">
+                <span v-for="genre in movie.genres" :key="genre.tmdb_id" class="badge rounded-pill bg-secondary me-2 px-3">
+                  #{{ genre.name }}
                 </span>
               </div>
             </div>
           </div>
         </div>
 
-        <!-- 리뷰 섹션 -->
-        <div v-if="movie" class="reviews-section mt-5">
-          <div class="d-flex justify-content-between align-items-center mb-3">
-            <h3 class="section-title">리뷰 ({{ movie.review_set ? movie.review_set.length : 0 }})</h3>
-            
+        <div v-if="trailerVideoId" class="trailer-section mt-5">
+          <h3 class="section-title mb-3">공식 예고편</h3>
+          <div class="ratio ratio-16x9 shadow rounded overflow-hidden">
+            <iframe 
+              :src="`https://www.youtube.com/embed/${trailerVideoId}`" 
+              title="YouTube video player" 
+              frameborder="0" 
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
+              allowfullscreen
+            ></iframe>
+          </div>
+        </div>
+
+        <div class="reviews-section mt-5 pt-4 border-top">
+          <div class="d-flex justify-content-between align-items-center mb-4">
+            <h3 class="section-title mb-0">리뷰 ({{ movie.review_set ? movie.review_set.length : 0 }})</h3>
             <router-link 
               :to="{ name: 'movie-reviews', params: { id: movie.id } }" 
-              class="btn btn-outline-secondary"
+              class="btn btn-sm btn-outline-dark"
             >
-              전체보기 →
+              전체보기 &rarr;
             </router-link>
           </div>
-          <div v-if="reviewsLoading" class="text-center">
-            <div class="spinner-border" role="status">
-              <span class="visually-hidden">Loading...</span>
-            </div>
+
+          <div v-if="!movie.review_set || movie.review_set.length === 0" class="alert alert-light text-center border py-4">
+            <p class="text-muted mb-0">아직 작성된 리뷰가 없습니다. 첫 번째 리뷰를 남겨보세요!</p>
           </div>
-          <div v-if="!movie.review_set || movie.review_set.length === 0" class="alert alert-info">
-            아직 리뷰가 없습니다. 첫 리뷰를 작성해보세요!
-          </div>
-          <div v-else>
+
+          <div v-else class="row">
             <div
               v-for="review in movie.review_set.slice(0, 3)"
               :key="review.id"
-              class="card mb-3 hover-effect"
-              style="cursor: pointer;"
-              @click="$router.push({ name: 'review-detail', params: { id: movie.id, reviewId: review.id } })"
+              class="col-md-4 mb-3"
             >
-              <div class="card-body">
-                <div class="d-flex justify-content-between">
-                  <h5 class="card-title text-truncate" style="max-width: 70%;">
-                    {{ review.title }} 
-                  </h5>
-                  <span class="badge bg-warning text-dark align-self-start">★ {{ review.rank }}</span>
-                </div>
-                
-                <p class="card-text text-truncate text-muted my-2">{{ review.content }}</p>
-                
-                <div class="d-flex justify-content-between align-items-center mt-3">
-                  <small class="text-muted">
-                    by {{ review.user }} | {{ new Date(review.created_at).toLocaleDateString() }}
-                  </small>
-                  
-                  <div class="d-flex gap-3 text-secondary small">
-                    <span>
-                      ❤ {{ review.like_count || 0 }}
-                    </span>
-                    <span>
-                      💬 {{ review.comments ? review.comments.length : 0 }}
-                    </span>
+              <div 
+                class="card h-100 shadow-sm hover-effect border-0 bg-light"
+                style="cursor: pointer;"
+                @click="$router.push({ name: 'review-detail', params: { id: movie.id, reviewId: review.id } })"
+              >
+                <div class="card-body">
+                  <div class="d-flex justify-content-between align-items-center mb-2">
+                    <span class="badge bg-warning text-dark small">★ {{ review.rank }}</span>
+                    <small class="text-muted">{{ new Date(review.created_at).toLocaleDateString() }}</small>
+                  </div>
+                  <h5 class="card-title text-truncate fw-bold">{{ review.title }}</h5>
+                  <p class="card-text text-muted small text-break" style="display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;">
+                    {{ review.content }}
+                  </p>
+                  <div class="d-flex justify-content-between align-items-center mt-3 pt-2 border-top">
+                    <span class="small fw-bold">by {{ review.user }}</span>
+                    <div class="small text-muted">
+                      <span class="me-2">❤ {{ review.like_count || 0 }}</span>
+                      <span>💬 {{ review.comments ? review.comments.length : 0 }}</span>
+                    </div>
                   </div>
                 </div>
-
               </div>
             </div>
           </div>
         </div>
-      </div>
-      <div v-else class="alert alert-info">
+      </div> <div v-else class="alert alert-warning text-center">
         영화 정보를 찾을 수 없습니다.
       </div>
     </div>
   </div>
 </template>
 
-<script setup>
-import { ref, onMounted } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
-import { useAuthStore } from '@/stores/auth' // ★ 스토어 가져오기
-import axios from 'axios'
-
-const route = useRoute()
-const router = useRouter()
-const store = useAuthStore() // ★ 스토어 사용
-
-const movie = ref(null)
-const loading = ref(true) // 로딩 상태 추가
-
-const getMovieDetail = async () => {
-  loading.value = true
-  try {
-    const res = await axios({
-      method: 'get',
-      url: `http://127.0.0.1:8000/api/v1/movies/${route.params.id}/`,
-      headers: {
-        // ★ [핵심] 상세 페이지도 토큰을 'Bearer'로 보내야 리뷰(review_set)를 줍니다!
-        Authorization: `Bearer ${store.token}` 
-      }
-    })
-    
-    movie.value = res.data
-    console.log('영화 데이터 확인:', res.data) // 콘솔에서 review_set이 들어있는지 확인해보세요!
-
-  } catch (err) {
-    console.error(err)
-  } finally {
-    loading.value = false
-  }
-}
-
-// 날짜 예쁘게 바꾸는 함수
-const formatDate = (dateString) => {
-  return new Date(dateString).toLocaleDateString()
-}
-
-onMounted(() => {
-  getMovieDetail()
-})
-</script>
-
 <style scoped>
-.movie-detail-container {
-  min-height: calc(100vh - 80px);
-  background-color: #ffffff;
-  padding: 3rem 0;
-  color: #000000;
+.hover-effect {
+  transition: transform 0.2s, box-shadow 0.2s;
 }
-
-.loading-spinner {
-  padding: 5rem 0;
+.hover-effect:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 10px 20px rgba(0,0,0,0.1) !important;
 }
-
-.movie-detail {
-  margin-top: 2rem;
-}
-
 .movie-poster-large {
+  max-height: 500px;
   width: 100%;
-  max-width: 400px;
-  height: auto;
-  border: 1px solid #000000;
-}
-
-.movie-title {
-  font-size: 2.5rem;
-  font-weight: bold;
-  color: #000000;
-  margin-bottom: 0.5rem;
-}
-
-.movie-original-title {
-  font-size: 1.2rem;
-  color: #666666;
-  margin-bottom: 2rem;
-}
-
-.movie-overview {
-  font-size: 1.1rem;
-  line-height: 1.8;
-  color: #000000;
-  margin-bottom: 2rem;
-}
-
-.movie-meta {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 1.5rem;
-  margin-top: 2rem;
-}
-
-.meta-item {
-  font-size: 1rem;
-  color: #000000;
-  padding: 0.5rem 1rem;
-  border: 1px solid #000000;
-  background-color: #ffffff;
-}
-
-.alert-info {
-  background-color: #ffffff;
-  border: 1px solid #000000;
-  color: #000000;
-  padding: 2rem;
-  text-align: center;
-  margin-top: 3rem;
-}
-
-.reviews-section {
-  margin-top: 3rem;
-  padding-top: 3rem;
-  border-top: 1px solid #000000;
-}
-
-.section-title {
-  font-size: 1.8rem;
-  font-weight: bold;
-  color: #000000;
-  margin-bottom: 0;
-}
-
-.card {
-  background-color: #ffffff;
-  border: 1px solid #000000;
-  color: #000000;
-}
-
-.btn-outline-secondary {
-  border: 1px solid #000000;
-  color: #000000;
-  background-color: #ffffff;
-}
-
-.btn-outline-secondary:hover {
-  background-color: #000000;
-  color: #ffffff;
-}
-
-@media (max-width: 768px) {
-  .movie-title {
-    font-size: 1.8rem;
-  }
-  
-  .movie-poster-large {
-    margin-bottom: 2rem;
-  }
-  
-  .movie-meta {
-    flex-direction: column;
-    gap: 1rem;
-  }
+  object-fit: cover;
 }
 </style>
-

@@ -3,6 +3,8 @@ import ReviewDetailView from '@/views/ReviewDetailView.vue'
 import MovieReviewsView from '@/views/MovieReviewsView.vue'
 import ReviewCreateView from '@/views/ReviewCreateView.vue'
 import ReviewUpdateView from '@/views/ReviewUpdateView.vue'
+import RecommendView from '@/views/RecommendView.vue'
+
 
 const routes = [
   {
@@ -51,6 +53,11 @@ const routes = [
   name: 'review-update',
   component: ReviewUpdateView
   },
+  {
+    path: '/recommend',
+    name: 'recommend',
+    component: () => import('@/views/RecommendView.vue')
+  }
 ]
 
 const router = createRouter({

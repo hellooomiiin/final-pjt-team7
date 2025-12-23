@@ -1,13 +1,8 @@
-from django.urls import path, include
-from rest_framework.routers import DefaultRouter
+﻿from django.urls import path
 from . import views
 
-router = DefaultRouter()
-
-router.register(r'', views.MovieViewSet, basename='movie') # 영화 목록, 상세 조회
-
 urlpatterns = [
-    path('popular/', views.MovieViewSet.as_view({'get': 'popular'}), name='movie-popular'),  # GET /movies/popular/ - 인기 영화 목록 (상위 20개)
-    path('', include(router.urls)),  # ViewSet의 기본 URL들 포함 (영화 목록, 상세 조회)
+    path('popular/', views.movie_popular, name='movie_popular'), # GET /movies/popular/
+    path('list/', views.movie_list_by_ids, name='movie_list_by_ids'), # GET /movies/list/?ids=1,2,3
+    path('<int:movie_pk>/', views.movie_detail, name='movie_detail'), # GET /movies/12345/
 ]
-

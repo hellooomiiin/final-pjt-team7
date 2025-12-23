@@ -54,3 +54,28 @@ dist/
 # OS
 Thumbs.db
 
+
+# vite gitignore
+# Dependencies
+node_modules
+/.vite/deps # The .vite folder for cached dependencies may sometimes appear here, but is usually inside node_modules
+
+# Production build output
+/dist
+
+# Local environment variables
+.env.local
+.env.*.local # Recommended for sensitive local variables like database passwords
+
+# Log files
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# OS and Editor files
+.DS_Store
+Thumbs.db
+.idea
+.vscode # Optional: include if you want to share editor settings with your team
