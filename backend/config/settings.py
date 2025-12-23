@@ -14,6 +14,8 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 load_dotenv()
 
 TMDB_API_KEY = os.getenv('TMDB_API_KEY')
+YOUTUBE_API_KEY = os.getenv('YOUTUBE_API_KEY')
+
 
 # (참고) 가져오지 못했을 때 에러를 띄우고 싶다면 아래처럼 작성 가능
 if not TMDB_API_KEY:

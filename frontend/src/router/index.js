@@ -31,7 +31,7 @@ const routes = [
   {
     path: '/recommend',
     name: 'recommend',
-    component: RecommendView
+    component: () => import('@/views/RecommendView.vue')
   }
 ]
 

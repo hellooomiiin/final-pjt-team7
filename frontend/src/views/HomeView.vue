@@ -14,6 +14,7 @@
         <button class="btn-close-modal" @click="closeModal">닫기</button>
       </div>
     </div>
+
     <div class="container">
       <div class="welcome-section">
         <div class="welcome-content">
@@ -41,18 +42,18 @@
           <div class="movies-grid">
             <div
               v-for="movie in popularMovies"
-              :key="movie.id"
+              :key="movie.tmdb_id"
               class="movie-card-item"
-              @click="goToMovieDetail(movie.id)"
+              @click="goToMovieDetail(movie.tmdb_id)"
             >
               <div class="movie-card">
                 <img
-                  :src="movie.poster_path || '/placeholder.jpg'"
+                  :src="getImageUrl(movie.poster_path)"
                   class="movie-poster"
                   :alt="movie.title"
                 />
               </div>
-            </div>
+              </div>
           </div>
         </div>
       </div>
@@ -63,7 +64,7 @@
 <script>
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { mockApi } from '@/data/mockData'
+import axios from 'axios' // [변경] axios 임포트
 
 export default {
   name: 'HomeView',
@@ -72,14 +73,15 @@ export default {
     const popularMovies = ref([])
     const loading = ref(true)
     
-    // ▼▼▼ 추가된 상태 변수들 ▼▼▼
+    // 모달 관련 상태
     const showMoodModal = ref(false)
-    // 실제 앱에서는 스토어(Pinia)에서 로그인 상태를 가져와야 합니다.
-    const isLoggedIn = ref(true) // 테스트를 위해 true로 설정
+    const isLoggedIn = ref(true) // 나중에 Store(Pinia)로 교체 필요
 
+    // [변경] Django API 호출 함수
     const fetchPopularMovies = async () => {
       try {
-        const response = await mockApi.getPopularMovies()
+        // Django 서버 주소 (http://127.0.0.1:8000/api/v1/movies/popular/)
+        const response = await axios.get('http://127.0.0.1:8000/api/v1/movies/popular/')
         popularMovies.value = response.data
       } catch (error) {
         console.error('인기 영화 로드 실패:', error)
@@ -88,14 +90,19 @@ export default {
       }
     }
 
+    // [추가] 이미지 전체 URL 생성 함수
+    const getImageUrl = (path) => {
+      if (!path) return '/placeholder.jpg' // 이미지가 없으면 로컬 대체 이미지
+      return `https://image.tmdb.org/t/p/w500${path}`
+    }
+
+    // [변경] movie.tmdb_id를 받아서 이동
     const goToMovieDetail = (movieId) => {
       router.push(`/movies/${movieId}`)
     }
 
-    // ▼▼▼ 추가된 함수들 ▼▼▼
     const selectMood = (mood) => {
       showMoodModal.value = false
-      // 선택한 감정을 쿼리 파라미터로 넘기며 추천 페이지로 이동
       router.push({ name: 'recommend', query: { mood: mood } })
     }
 
@@ -106,7 +113,6 @@ export default {
     onMounted(() => {
       fetchPopularMovies()
       
-      // 로그인이 되어 있다면 팝업 띄우기
       if (isLoggedIn.value) {
         showMoodModal.value = true
       }
@@ -116,25 +122,25 @@ export default {
       popularMovies,
       loading,
       goToMovieDetail,
-      showMoodModal,  // 추가
-      selectMood,     // 추가
-      closeModal      // 추가
+      showMoodModal,
+      selectMood,
+      closeModal,
+      getImageUrl // [추가] 템플릿에서 사용하기 위해 반환
     }
   }
 }
 </script>
 
 <style scoped>
-/* 기존 스타일 유지 */
+/* 기존 스타일 그대로 유지 */
 .home-container {
   min-height: calc(100vh - 80px);
   background-color: #ffffff;
   padding: 3rem 0;
   color: #000000;
-  position: relative; /* 모달 위치 잡기 위해 추가 */
+  position: relative;
 }
 
-/* ... (기존 스타일 생략: welcome-section 등 그대로 두세요) ... */
 .welcome-section { margin-bottom: 4rem; text-align: center; }
 .welcome-content { max-width: 800px; margin: 0 auto; }
 .welcome-title { font-size: 2.5rem; font-weight: bold; color: #000000; margin-bottom: 1rem; }
@@ -149,14 +155,14 @@ export default {
 .movie-card { background-color: #ffffff; border: 1px solid #000000; overflow: hidden; }
 .movie-poster { width: 100%; height: 400px; object-fit: cover; display: block; }
 
-/* ▼▼▼ 모달 관련 스타일 추가 ▼▼▼ */
+/* 모달 스타일 */
 .modal-overlay {
   position: fixed;
   top: 0;
   left: 0;
   width: 100%;
   height: 100%;
-  background-color: rgba(0, 0, 0, 0.5); /* 반투명 검은 배경 */
+  background-color: rgba(0, 0, 0, 0.5);
   display: flex;
   justify-content: center;
   align-items: center;

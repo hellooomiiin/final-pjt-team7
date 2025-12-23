@@ -58,7 +58,7 @@ Thumbs.db
 # vite gitignore
 # Dependencies
 node_modules
-/vite/deps # The .vite folder for cached dependencies may sometimes appear here, but is usually inside node_modules
+/.vite/deps # The .vite folder for cached dependencies may sometimes appear here, but is usually inside node_modules
 
 # Production build output
 /dist
