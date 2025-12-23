@@ -62,6 +62,7 @@
 </template>
 
 <script>
+import { useAuthStore } from '@/stores/auth'  // 인증 상태 확인을 위한 Pinia 스토어 import
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import axios from 'axios' // [변경] axios 임포트
@@ -70,6 +71,7 @@ export default {
   name: 'HomeView',
   setup() {
     const router = useRouter()
+    const authStore = useAuthStore()  // 인증 스토어 인스턴스 생성 (로그인 상태 확인용) 
     const popularMovies = ref([])
     const loading = ref(true)
     
@@ -102,7 +104,16 @@ export default {
     }
 
     const selectMood = (mood) => {
-      showMoodModal.value = false
+      showMoodModal.value = false // 모달 닫기
+
+      // 로그인 상태 확인
+      if (!authStore.isAuthenticated) {
+        // 로그인하지 않았으면 로그인 페이지로 이동
+        router.push('/login')
+        return
+      }
+      
+      // 로그인했으면 추천 페이지로 이동
       router.push({ name: 'recommend', query: { mood: mood } })
     }
 

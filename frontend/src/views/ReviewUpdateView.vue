@@ -10,7 +10,7 @@ const store = useAuthStore()
 
 const title = ref('')
 const content = ref('')
-const rank = ref(0)
+const rank = ref(5) // 기본값 5점
 
 // 1. 기존 리뷰 데이터 가져오기
 const getReview = async () => {
@@ -64,23 +64,40 @@ onMounted(() => {
 
 <template>
   <div class="container mt-5">
-    <h1>리뷰 수정</h1>
+    <h2>리뷰 수정</h2>
     <hr>
+    
     <form @submit.prevent="updateReview">
       <div class="mb-3">
-        <label for="title" class="form-label">제목</label>
-        <input type="text" id="title" class="form-control" v-model="title" required>
+        <label class="form-label">제목</label>
+        <input v-model="title" type="text" class="form-control" required>
       </div>
+
       <div class="mb-3">
-        <label for="rank" class="form-label">평점 (1~10)</label>
-        <input type="number" id="rank" class="form-control" v-model="rank" min="1" max="10" required>
+        <label class="form-label">평점</label>
+        <div class="d-flex gap-3 align-items-center">
+          <label v-for="rating in [1, 2, 3, 4, 5]" :key="rating" class="d-flex align-items-center gap-2">
+            <input 
+              type="radio" 
+              :value="rating" 
+              v-model="rank"
+              class="form-check-input"
+              required
+            >
+            <span>{{ rating }}점</span>
+          </label>
+        </div>
       </div>
+
       <div class="mb-3">
-        <label for="content" class="form-label">내용</label>
-        <textarea id="content" class="form-control" v-model="content" rows="5" required></textarea>
+        <label class="form-label">내용</label>
+        <textarea v-model="content" class="form-control" rows="5" required></textarea>
       </div>
-      <button type="submit" class="btn btn-primary">수정완료</button>
-      <button type="button" @click="router.go(-1)" class="btn btn-secondary ms-2">취소</button>
+
+      <div class="d-flex gap-2">
+        <button type="submit" class="btn btn-primary">수정완료</button>
+        <button type="button" @click="router.go(-1)" class="btn btn-secondary">취소</button>
+      </div>
     </form>
   </div>
 </template>

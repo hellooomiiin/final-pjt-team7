@@ -2,6 +2,7 @@ from rest_framework import viewsets, status
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
+from rest_framework.exceptions import ValidationError
 from django.shortcuts import get_object_or_404
 
 from .models import Review, Comment
@@ -11,11 +12,30 @@ from movies.models import Movie
 class ReviewViewSet(viewsets.ModelViewSet):
     queryset = Review.objects.all()
     serializer_class = ReviewSerializer
-
+    
+    def get_queryset(self):
+        """
+        리뷰 목록 조회 시 movie 필터 지원
+        """
+        queryset = Review.objects.all()
+        movie_id = self.request.query_params.get('movie', None)
+        if movie_id:
+            queryset = queryset.filter(movie_id=movie_id)
+        return queryset
+    
+    # 영화 정보는 URL 파라미터나 request.data에서 가져와야 함 (URL 구조에 따라 다름)
     def perform_create(self, serializer):
-        # 영화 정보는 URL 파라미터나 request.data에서 가져와야 함 (URL 구조에 따라 다름)
-        # 일단은 request.data에 movie ID가 있다고 가정 (프론트 수정 필요 시 설명함)
-        serializer.save(user=self.request.user)
+        # request.data에서 movie ID 가져오기
+        movie_id = self.request.data.get('movie')
+        if not movie_id:
+            raise ValidationError({'movie': '영화 ID가 필요합니다.'})
+        
+        # Movie 객체 가져오기
+        movie = get_object_or_404(Movie, pk=movie_id)
+        
+        # user와 movie를 함께 저장
+        # 중복 체크는 프론트엔드에서 처리하고, 데이터베이스 레벨의 unique_together 제약 조건으로도 보호됨
+        serializer.save(user=self.request.user, movie=movie)
 
     
 # ★ 좋아요 기능 (POST 요청)
