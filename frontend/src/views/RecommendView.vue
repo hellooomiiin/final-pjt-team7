@@ -7,20 +7,25 @@
       </div>
 
       <div v-if="loading" class="loading-spinner">
-        Loading...
+        <div class="spinner-border text-danger" role="status">
+          <span class="visually-hidden">Loading...</span>
+        </div>
       </div>
 
       <div v-else class="movies-grid">
         <div 
           v-for="movie in recommendedMovies" 
-          :key="movie.id" 
+          :key="movie.tmdb_id" 
           class="movie-card"
-          @click="goToDetail(movie.id)"
+          @click="goToDetail(movie.tmdb_id)"
         >
-          <img :src="movie.poster_path || '/placeholder.jpg'" :alt="movie.title" />
+          <img 
+            :src="getImageUrl(movie.poster_path)" 
+            :alt="movie.title" 
+          />
           <div class="movie-info">
             <h3>{{ movie.title }}</h3>
-            <span class="rating">★ {{ movie.vote_average }}</span>
+            <span class="rating">★ {{ movie.vote_average ? movie.vote_average.toFixed(1) : '0.0' }}</span>
           </div>
         </div>
       </div>
@@ -35,7 +40,7 @@
 <script>
 import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { mockApi } from '@/data/mockData' 
+import axios from 'axios' // [변경] axios 임포트
 
 export default {
   name: 'RecommendView',
@@ -58,22 +63,33 @@ export default {
       }
     })
 
-    // 실제로는 백엔드에 mood를 보내서 데이터를 받아와야 함
-    // 여기서는 mockApi의 데이터를 가져온 뒤 섞는 것으로 흉내만
+    // [중요] 백엔드 DB에서 데이터 가져오기
     const fetchRecommendations = async () => {
       loading.value = true
       try {
-        // 백엔드 API가 있다면: await axios.get(`/api/recommend?mood=${currentMood.value}`)
-        const res = await mockApi.getPopularMovies() 
-        // 예시를 위해 데이터를 조금 섞거나 잘라서 보여줍니다.
-        recommendedMovies.value = res.data.slice(0, 4) 
+        // 1. 현재는 '인기 영화' API를 재사용합니다. 
+        // (나중에 AI 기능이 완성되면 '/api/recommend/' 같은 전용 엔드포인트로 교체하면 됩니다)
+        const response = await axios.get('http://127.0.0.1:8000/api/v1/movies/popular/')
+        
+        // 2. 받아온 20개 영화 중 랜덤으로 섞어서 4개를 뽑습니다. (추천 느낌 내기)
+        const allMovies = response.data
+        const shuffled = allMovies.sort(() => 0.5 - Math.random())
+        recommendedMovies.value = shuffled.slice(0, 4)
+        
       } catch (err) {
-        console.error(err)
+        console.error('추천 영화 로드 실패:', err)
       } finally {
         loading.value = false
       }
     }
 
+    // [추가] 이미지 URL 생성 함수
+    const getImageUrl = (path) => {
+      if (!path) return '/assets/no-poster.jpg' // 없을 때 대체 이미지
+      return `https://image.tmdb.org/t/p/w500${path}`
+    }
+
+    // [변경] tmdb_id 사용
     const goToDetail = (id) => {
       router.push(`/movies/${id}`)
     }
@@ -91,17 +107,21 @@ export default {
       moodMessage,
       recommendedMovies,
       loading,
-      goToDetail
+      goToDetail,
+      getImageUrl // 템플릿 반환
     }
   }
 }
 </script>
 
 <style scoped>
+/* 스타일은 기존 그대로 유지 */
 .recommend-container { padding: 4rem 0; min-height: 80vh; }
 .container { max-width: 1200px; margin: 0 auto; padding: 0 1rem; }
 .header-section { text-align: center; margin-bottom: 3rem; }
 .header-section h1 { font-size: 2.5rem; margin-bottom: 1rem; font-weight: bold; }
+
+.loading-spinner { text-align: center; padding: 3rem; }
 
 .movies-grid {
   display: grid;
@@ -114,11 +134,12 @@ export default {
   border: 1px solid #000;
   cursor: pointer;
   transition: transform 0.2s;
+  background: white;
 }
-.movie-card:hover { transform: translateY(-5px); }
-.movie-card img { width: 100%; height: 350px; object-fit: cover; }
+.movie-card:hover { transform: translateY(-5px); box-shadow: 5px 5px 0px #000; }
+.movie-card img { width: 100%; height: 350px; object-fit: cover; border-bottom: 1px solid #000; }
 .movie-info { padding: 1rem; text-align: center; }
-.movie-info h3 { font-size: 1.1rem; margin-bottom: 0.5rem; font-weight: bold; }
+.movie-info h3 { font-size: 1.1rem; margin-bottom: 0.5rem; font-weight: bold; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
 .action-area { text-align: center; }
 .btn-back {
@@ -128,5 +149,7 @@ export default {
   border: none;
   font-size: 1rem;
   cursor: pointer;
+  transition: opacity 0.2s;
 }
+.btn-back:hover { opacity: 0.8; }
 </style>

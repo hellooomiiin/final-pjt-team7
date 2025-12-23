@@ -11,7 +11,7 @@
         <div class="row">
           <div class="col-md-4">
             <img
-              :src="getImageUrl(movie.poster_path)"
+              :src="getImageUrl(movie.poster_path, 'poster')"
               class="movie-poster-large"
               :alt="movie.title"
             />
@@ -30,12 +30,36 @@
                 <span v-if="movie.release_date" class="meta-item">
                   개봉일: {{ movie.release_date }}
                 </span>
+                <span v-if="movie.runtime" class="meta-item">
+                  상영시간: {{ movie.runtime }}분
+                </span>
                 <span v-if="movie.vote_average" class="meta-item">
                   평점: {{ movie.vote_average.toFixed(1) }}/10
                 </span>
                 <span v-if="movie.popularity" class="meta-item">
                   인기도: {{ movie.popularity.toFixed(0) }}
                 </span>
+              </div>
+
+              <div class="people-info mt-4">
+                <div v-if="movie.director" class="mb-3">
+                  <strong>감독:</strong> <span class="director-name">{{ movie.director }}</span>
+                </div>
+
+                <div v-if="movie.actors && movie.actors.length" class="actors-list">
+                  <strong>출연:</strong>
+                  <div class="d-flex flex-wrap gap-3 mt-2">
+                    <div v-for="actor in movie.actors" :key="actor.name" class="actor-card text-center">
+                      <img 
+                        :src="getImageUrl(actor.profile_path, 'actor')" 
+                        class="actor-img" 
+                        alt="actor"
+                      >
+                      <div class="actor-name small mt-1">{{ actor.name }}</div>
+                      <div class="actor-char x-small text-muted">{{ actor.character }}</div>
+                    </div>
+                  </div>
+                </div>
               </div>
 
               <div v-if="movie.genres && movie.genres.length" class="mt-3">
@@ -142,9 +166,20 @@ export default {
     }
 
     // 3. 이미지 URL 생성 헬퍼
-    const getImageUrl = (path) => {
-      if (!path) return '/placeholder.jpg'
-      return `https://image.tmdb.org/t/p/w500${path}`
+    const getImageUrl = (path, type = 'poster') => {
+      // 1. 이미지가 없을 경우 (null 또는 빈 문자열)
+      if (!path) {
+        if (type === 'actor') {
+          return '/assets/no-profile.png' // 배우용 기본 이미지 (사람 실루엣 등)
+        }
+        return '/assets/no-poster.png'   // 영화용 기본 이미지 (회색 박스 등)
+      }
+
+      // 2. 이미지가 있을 경우 (크기 최적화)
+      // 배우 사진은 작아도 되니까 w185나 w200으로 설정
+      const size = type === 'actor' ? 'w185' : 'w500'
+      
+      return `https://image.tmdb.org/t/p/${size}${path}`
     }
 
     onMounted(() => {
@@ -248,6 +283,27 @@ export default {
   color: #000000;
   padding: 2rem;
   text-align: center;
+}
+
+.actor-img {
+  width: 80px;
+  height: 80px;
+  object-fit: cover;
+  border-radius: 50%; /* 동그란 프로필 사진 */
+  border: 1px solid #ddd;
+  margin-bottom: 5px;
+}
+
+.actor-card {
+  width: 90px;
+}
+
+.director-name {
+  font-size: 1.1rem;
+}
+
+.x-small {
+  font-size: 0.8rem;
 }
 
 /* 모바일 대응 */

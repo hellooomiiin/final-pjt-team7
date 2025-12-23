@@ -22,6 +22,13 @@ class Movie(models.Model):
     popularity = models.FloatField(default=0)
     vote_average = models.FloatField(default=0)
     vote_count = models.IntegerField(default=0)
+    
+    runtime = models.IntegerField(null=True, blank=True) # 분 단위
+    director = models.CharField(max_length=100, null=True, blank=True) # 감독 이름
+    
+    # 배우 데이터는 [{name: 'Tom', profile_path: '/abc.jpg'}, ...] 형태의 리스트로 저장
+    # SQLite/PostgreSQL 모두 지원 (Django 3.1+)
+    actors = models.JSONField(default=list, null=True, blank=True)
 
     # 장르와의 관계 (Many-to-Many)
     # DB에는 'movies_movie_genres' 라는 테이블이 자동으로 생성되어 매칭 정보를 관리합니다.
