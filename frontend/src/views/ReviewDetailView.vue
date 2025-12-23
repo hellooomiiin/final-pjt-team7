@@ -17,13 +17,12 @@ const isEdited = (created, updated) => {
   return updatedTime - createdTime > 2000
 }
 
-// 1. 리뷰 상세 정보 (+댓글) 가져오기
+// 1. 리뷰 상세 정보 (+댓글) 가져오기 (토큰 없이도 조회 가능)
 const getReviewDetail = async () => {
   try {
     const res = await axios({
       method: 'get',
-      url: `http://127.0.0.1:8000/api/v1/community/reviews/${route.params.reviewId}/`,
-      headers: { Authorization: `Bearer ${store.token}` }
+      url: `http://127.0.0.1:8000/api/v1/community/reviews/${route.params.reviewId}/`
     })
     review.value = res.data
     console.log('리뷰 정보:', res.data)
@@ -132,7 +131,7 @@ onMounted(() => {
   <div class="container mt-5" v-if="review">
     <div class="card shadow-sm">
       <div class="card-header d-flex justify-content-between align-items-center bg-light">
-        <span class="fw-bold">{{ review.user }}님의 리뷰</span>
+        <span class="fw-bold">{{ review.user_nickname || review.user }}님의 리뷰</span>
         <span class="text-muted small">
           {{ new Date(review.created_at).toLocaleString() }}
           <span v-if="isEdited(review.created_at, review.updated_at)" class="ms-1 fw-bold">
@@ -146,11 +145,18 @@ onMounted(() => {
         <p class="card-text fs-5 mb-5">{{ review.content }}</p>
 
         <div class="d-flex justify-content-between align-items-center">
-          <button @click="toggleLike" class="btn btn-outline-danger d-flex align-items-center gap-2">
-            <span v-if="isLiked">🤍</span>
-            <span v-else>❤</span>
-            <span>좋아요 {{ review.like_count }}</span>
-          </button>
+          <div class="d-flex align-items-center gap-2">
+            <button 
+              v-if="store.isAuthenticated"
+              @click="toggleLike" 
+              :class="['btn', 'd-flex', 'align-items-center', 'gap-2', isLiked ? 'btn-like-active' : 'btn-like-inactive']"
+            >
+              <span v-if="isLiked">♥</span>
+              <span v-else>♡</span>
+              <span>좋아요 {{ review.like_count }}</span>
+            </button>
+            <span v-else class="text-muted">좋아요 {{ review.like_count }}</span>
+          </div>
 
           <div v-if="review.user === store.user?.username" class="d-flex gap-2">
             <button @click="$router.push({name: 'review-update'})" class="btn btn-sm btn-outline-primary">수정</button>
@@ -164,7 +170,7 @@ onMounted(() => {
       <h4>댓글 ({{ review.comments ? review.comments.length : 0 }})</h4>
       <hr>
 
-      <form @submit.prevent="createComment" class="input-group mb-4">
+      <form v-if="store.isAuthenticated" @submit.prevent="createComment" class="input-group mb-4">
         <input 
           type="text" 
           class="form-control" 
@@ -174,6 +180,9 @@ onMounted(() => {
         >
         <button class="btn btn-primary" type="submit">등록</button>
       </form>
+      <div v-else class="mb-4 p-3 bg-light rounded text-center text-muted">
+        댓글을 작성하려면 <router-link to="/login">로그인</router-link>이 필요합니다.
+      </div>
 
       <div v-if="review.comments && review.comments.length > 0">
         <ul class="list-group list-group-flush">
@@ -183,7 +192,7 @@ onMounted(() => {
             class="list-group-item d-flex justify-content-between align-items-start bg-transparent"
           >
             <div class="ms-2 me-auto">
-              <div class="fw-bold mb-1">{{ comment.user }}</div>
+              <div class="fw-bold mb-1">{{ comment.user_nickname || comment.user }}</div>
               {{ comment.content }}
             </div>
             
@@ -199,7 +208,7 @@ onMounted(() => {
     </div>
 
     <div class="mt-4 text-center">
-      <button @click="router.go(-1)" class="btn btn-secondary">뒤로가기</button>
+      <button @click="router.push({ name: 'movie-reviews', params: { id: route.params.id } })" class="btn btn-secondary">뒤로가기</button>
     </div>
   </div>
 
@@ -207,3 +216,29 @@ onMounted(() => {
     <div class="spinner-border text-primary" role="status"></div>
   </div>
 </template>
+
+<style scoped>
+.btn-like-active {
+  background-color: #f7429c;
+  border-color: #ee5fa7;
+  color: white;
+}
+
+.btn-like-active:hover {
+  background-color: #fd3fa5;
+  border-color: #f849a6;
+  color: white;
+}
+
+.btn-like-inactive {
+  background-color: transparent;
+  border-color: #f84da3;
+  color: #000000;
+}
+
+.btn-like-inactive:hover {
+  background-color: #f03d96;
+  border-color: #f877b8;
+  color: white;
+}
+</style>

@@ -17,11 +17,16 @@ backend/
 │   ├── serializers.py       # 사용자 시리얼라이저
 │   ├── views.py             # 인증 뷰셋
 │   └── urls.py              # 인증 URL 라우팅
-├── movies/                   # 영화 데이터 앱 (현재 미사용, 다른 팀원이 담당)
-│   ├── models.py            # Movie, Genre, Person 등 모델
+├── movies/                   # 영화 데이터 앱
+│   ├── models.py            # Movie, Genre 모델
 │   ├── serializers.py       # 영화 시리얼라이저
-│   ├── views.py             # 영화 뷰셋
+│   ├── views.py             # 영화 뷰
 │   └── urls.py              # 영화 URL 라우팅
+├── community/               # 리뷰 및 댓글 앱
+│   ├── models.py            # Review, Comment 모델
+│   ├── serializers.py       # 리뷰/댓글 시리얼라이저
+│   ├── views.py             # 리뷰/댓글 뷰셋
+│   └── urls.py              # 리뷰/댓글 URL 라우팅
 ├── config/                   # Django 설정
 │   ├── settings.py          # 프로젝트 설정
 │   ├── urls.py              # 메인 URL 설정
@@ -101,15 +106,22 @@ python manage.py runserver
 - `GET /api/v1/movies/popular/` - 인기 영화 목록 (상위 20개)
 - `GET /api/v1/movies/{id}/` - 영화 상세 정보 조회
 
-### 리뷰 (reviews)
-- `GET /api/v1/reviews/` - 리뷰 목록 조회
-  - 쿼리 파라미터: `movie={movie_id}`, `ordering={정렬옵션}`
-- `POST /api/v1/reviews/` - 리뷰 작성 (인증 필요)
-- `GET /api/v1/reviews/{id}/` - 리뷰 상세 조회
-- `PUT /api/v1/reviews/{id}/` - 리뷰 수정 (인증 필요)
-- `DELETE /api/v1/reviews/{id}/` - 리뷰 삭제 (인증 필요)
-- `POST /api/v1/reviews/{id}/like/` - 리뷰 좋아요 (인증 필요)
-- `DELETE /api/v1/reviews/{id}/like/` - 리뷰 좋아요 취소 (인증 필요)
+### 리뷰 및 댓글 (community)
+- `GET /api/v1/community/reviews/` - 리뷰 목록 조회 (인증 불필요)
+  - 쿼리 파라미터: `movie={movie_id}` (DB의 id)
+  - 페이지네이션: 페이지당 20개
+- `POST /api/v1/community/reviews/` - 리뷰 작성 (인증 필요)
+  - 요청: `{ title, content, rank (1-5), movie (DB의 id) }`
+  - 제약: 한 유저당 한 영화에 하나의 리뷰만 작성 가능 (unique_together)
+- `GET /api/v1/community/reviews/{id}/` - 리뷰 상세 조회 (인증 불필요)
+- `PUT /api/v1/community/reviews/{id}/` - 리뷰 수정 (인증 필요, 본인만)
+- `DELETE /api/v1/community/reviews/{id}/` - 리뷰 삭제 (인증 필요, 본인만)
+- `POST /api/v1/community/reviews/{id}/likes/` - 리뷰 좋아요/취소 (인증 필요)
+  - 응답: `{ liked: true/false, count: 좋아요_개수 }`
+- `GET /api/v1/community/reviews/{id}/comments/` - 댓글 목록 조회 (인증 불필요)
+- `POST /api/v1/community/reviews/{id}/comments/` - 댓글 작성 (인증 필요)
+  - 요청: `{ content }`
+- `DELETE /api/v1/community/reviews/{id}/comments/{comment_id}/` - 댓글 삭제 (인증 필요, 본인만)
 
 ## API 문서
 
@@ -139,6 +151,17 @@ python manage.py runserver
   - `users` 테이블 삭제, `accounts_user` 테이블 사용
   - 불필요한 마이그레이션 스크립트 삭제
   - `init_sqlite_database.sql` 파일 삭제 (Django migrations로 테이블 관리)
+- ✅ **리뷰 및 댓글 기능 구현**:
+  - `community` 앱 추가 (Review, Comment 모델)
+  - 리뷰 CRUD API 완료
+  - 댓글 CRUD API 완료
+  - 리뷰 좋아요 API 완료
+  - 페이지네이션 설정 (페이지당 20개)
+  - unique_together 제약 조건 (한 유저당 한 영화에 하나의 리뷰만 작성 가능)
+  - 닉네임 필드 추가 (ReviewSerializer, CommentSerializer)
+- ✅ **권한 설정**:
+  - 리뷰/댓글 조회: 인증 불필요 (IsAuthenticatedOrReadOnly)
+  - 리뷰/댓글 작성/수정/삭제: 인증 필요
 
 ## 주의사항
 

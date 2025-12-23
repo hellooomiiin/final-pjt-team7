@@ -87,12 +87,22 @@
 				<div class="reviews-section mt-5 pt-4 border-top">
 					<div class="d-flex justify-content-between align-items-center mb-4">
 						<h3 class="section-title mb-0">리뷰 ({{ movie.review_set ? movie.review_set.length : 0 }})</h3>
-						<router-link 
-							:to="{ name: 'movie-reviews', params: { id: movie.id } }" 
-							class="btn btn-sm btn-outline-dark"
-						>
-							전체보기 &rarr;
-						</router-link>
+						<div class="d-flex gap-2 align-items-center">
+							<!-- 로그인 상태일 때만 리뷰 작성하기 버튼 표시 -->
+							<button 
+								v-if="authStore.isAuthenticated"
+								@click="goReviewCreate"
+								class="btn btn-sm btn-review-create"
+							>
+								리뷰 작성하기
+							</button>
+							<router-link 
+								:to="{ name: 'movie-reviews', params: { id: movie.tmdb_id } }" 
+								class="btn btn-sm btn-outline-dark"
+							>
+								전체보기 &rarr;
+							</router-link>
+						</div>
 					</div>
 
 					<div v-if="!movie.review_set || movie.review_set.length === 0" class="alert alert-light text-center border py-4">
@@ -108,7 +118,7 @@
 							<div 
 								class="card h-100 shadow-sm hover-effect border-0 bg-light"
 								style="cursor: pointer;"
-								@click="$router.push({ name: 'review-detail', params: { id: movie.id, reviewId: review.id } })"
+								@click="$router.push({ name: 'review-detail', params: { id: movie.tmdb_id, reviewId: review.id } })"
 							>
 								<div class="card-body">
 									<div class="d-flex justify-content-between align-items-center mb-2">
@@ -120,7 +130,7 @@
 										{{ review.content }}
 									</p>
 									<div class="d-flex justify-content-between align-items-center mt-3 pt-2 border-top">
-										<span class="small fw-bold">by {{ review.user }}</span>
+										<span class="small fw-bold">by {{ review.user_nickname || review.user }}</span>
 										<div class="small text-muted">
 											<span class="me-2">❤ {{ review.like_count || 0 }}</span>
 											<span>💬 {{ review.comments ? review.comments.length : 0 }}</span>
@@ -145,6 +155,7 @@
 import { ref, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import axios from 'axios'
+import { useAuthStore } from '@/stores/auth' // 인증 스토어 import
 
 export default {
   name: 'MovieDetailView',
@@ -152,6 +163,7 @@ export default {
     // 1. 기본 변수 및 도구 설정
     const route = useRoute()   // 현재 URL 정보 가져오기용
     const router = useRouter() // 페이지 이동용 (router.push)
+    const authStore = useAuthStore() // 인증 스토어 인스턴스 생성
     
     const movie = ref(null)
     const loading = ref(true)  // 로딩 상태 (템플릿 v-if="loading"을 위해 필수)
@@ -177,8 +189,59 @@ export default {
       router.push({ 
         name: 'review-detail', 
         params: { 
-          id: movie.value.id, // 영화 ID
+          id: movie.value.tmdb_id, // 영화 ID (tmdb_id 사용)
           reviewId: reviewId  // 리뷰 ID
+        } 
+      })
+    }
+
+    // [페이지 이동] 리뷰 작성 페이지로 이동 (이미 리뷰 작성 여부 확인)
+    const goReviewCreate = async () => {
+      if (!movie.value) return
+      
+      try {
+        // authStore.user가 없으면 fetchProfile로 최신 정보 가져오기
+        if (!authStore.user) {
+          await authStore.fetchProfile()
+        }
+        
+        // movie.value.id는 DB의 id (Movie 모델의 PK)
+        // Review 모델의 movie 필드는 Movie의 id를 참조하므로 movie.value.id 사용
+        // API를 직접 호출해서 현재 사용자가 이미 이 영화에 리뷰를 작성했는지 확인
+        const response = await axios({
+          method: 'get',
+          url: `http://127.0.0.1:8000/api/v1/community/reviews/`,
+          params: {
+            movie: movie.value.id
+          },
+          headers: { Authorization: `Bearer ${authStore.token}` }
+        })
+        
+        const currentUsername = authStore.user?.username
+        
+        // 페이지네이션된 응답이므로 response.data.results 사용
+        const reviews = response.data.results || response.data
+        
+        // 응답에서 현재 사용자가 작성한 리뷰가 있는지 확인
+        const hasMyReview = Array.isArray(reviews) && reviews.some(
+          review => review.user === currentUsername
+        )
+        
+        if (hasMyReview) {
+          alert('이미 이 영화에 리뷰를 작성하셨습니다.')
+          return // 페이지 이동하지 않음
+        }
+      } catch (error) {
+        // API 호출 실패 시에도 작성 페이지로 이동 (에러 무시)
+        console.error('리뷰 확인 중 오류:', error)
+      }
+      
+      // 리뷰가 없거나 현재 사용자가 작성한 리뷰가 없으면 작성 페이지로 이동
+      // 백엔드 영화 API는 tmdb_id를 기대하므로 tmdb_id 전달
+      router.push({ 
+        name: 'review-create', 
+        params: { 
+          id: movie.value.tmdb_id // tmdb_id 전달
         } 
       })
     }
@@ -230,11 +293,35 @@ export default {
       try {
         const movieId = route.params.id
         // 백엔드 주소 (api/v1/movies/...)
-        const response = await axios.get(`http://127.0.0.1:8000/api/v1/movies/${movieId}/`)
-        movie.value = response.data
+        const movieResponse = await axios.get(`http://127.0.0.1:8000/api/v1/movies/${movieId}/`)
+        movie.value = movieResponse.data
         
-        // 영화 정보 로드 성공 시 -> 예고편 검색 시작
+        // 영화 정보 로드 성공 시 -> 리뷰 목록과 예고편 검색
         if (movie.value) {
+          // 리뷰 목록 가져오기 (review_set이 없을 수 있으므로 별도로 호출)
+          // 토큰 없이도 조회 가능하므로 헤더 제거
+          try {
+            const reviewsResponse = await axios({
+              method: 'get',
+              url: `http://127.0.0.1:8000/api/v1/community/reviews/`,
+              params: {
+                movie: movie.value.id // DB의 id 사용
+              }
+            })
+            
+            // review_set이 없으면 리뷰 목록 API에서 가져온 데이터로 추가
+            if (!movie.value.review_set) {
+              movie.value.review_set = reviewsResponse.data.results || reviewsResponse.data
+            }
+          } catch (reviewError) {
+            console.error('리뷰 목록 로드 실패:', reviewError)
+            // 리뷰 목록 로드 실패해도 영화 정보는 표시
+            if (!movie.value.review_set) {
+              movie.value.review_set = []
+            }
+          }
+          
+          // 예고편 검색 시작
           await fetchTrailer(movie.value.title)
         }
       } catch (error) {
@@ -254,9 +341,11 @@ export default {
       movie,
       loading,
       trailerVideoId,
+      authStore,       // 인증 스토어 (로그인 상태 확인용)
       getImageUrl,
       formatDate,      // 템플릿에서 사용하기 위해 반환
-      goReviewDetail   // 템플릿에서 사용하기 위해 반환
+      goReviewDetail,  // 템플릿에서 사용하기 위해 반환
+      goReviewCreate   // 리뷰 작성 페이지로 이동하는 함수
     }
   }
 }
@@ -368,6 +457,24 @@ export default {
 
 .x-small {
 	font-size: 0.8rem;
+}
+
+/* 리뷰 작성하기 버튼 스타일 - 전체보기 버튼과 동일하되 테두리 없음 + 호버 효과 */
+.btn-review-create {
+	border: none !important;
+	outline: none !important;
+	box-shadow: none !important;
+	color: #000000;
+	transition: opacity 0.2s ease;
+}
+
+.btn-review-create:hover {
+	opacity: 0.7;
+}
+
+.btn-review-create:focus {
+	outline: none !important;
+	box-shadow: none !important;
 }
 
 /* 모바일 대응 */

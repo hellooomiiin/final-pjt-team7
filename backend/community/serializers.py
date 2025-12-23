@@ -6,6 +6,7 @@ User = get_user_model()
 
 class CommentSerializer(serializers.ModelSerializer):
     user = serializers.ReadOnlyField(source='user.username')
+    user_nickname = serializers.ReadOnlyField(source='user.nickname')  # 닉네임 필드 추가
     class Meta:
         model = Comment
         fields = '__all__'
@@ -13,6 +14,7 @@ class CommentSerializer(serializers.ModelSerializer):
 
 class ReviewSerializer(serializers.ModelSerializer):
     user = serializers.ReadOnlyField(source='user.username')
+    user_nickname = serializers.ReadOnlyField(source='user.nickname')
     comments = CommentSerializer(many=True, read_only=True)
     like_count = serializers.IntegerField(source='like_users.count', read_only=True)
 

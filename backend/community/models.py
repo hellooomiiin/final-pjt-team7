@@ -18,6 +18,9 @@ class Review(models.Model):
     
     like_users = models.ManyToManyField(settings.AUTH_USER_MODEL, related_name='like_reviews', blank=True)
     
+    class Meta:
+        # 한 유저는 한 영화에 하나의 리뷰만 작성 가능
+        unique_together = [['user', 'movie']]
 
 class Comment(models.Model):
     review = models.ForeignKey(Review, on_delete=models.CASCADE, related_name='comments') # 어떤 리뷰의 댓글인지
