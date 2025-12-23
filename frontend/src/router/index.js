@@ -54,6 +54,26 @@ const routes = [
   component: ReviewUpdateView
   },
   {
+    path: '/profile',
+    name: 'Profile',
+    component: () => import('@/views/ProfileView.vue')
+  },
+  {
+    path: '/profile/edit',
+    name: 'ProfileEdit',
+    component: () => import('@/views/ProfileEditView.vue')
+  },
+  {
+    path: '/profile/emotions',
+    name: 'ProfileEmotions',
+    component: () => import('@/views/ProfileEmotionsView.vue')
+  },
+  {
+    path: '/profile/reviews',
+    name: 'ProfileReviews',
+    component: () => import('@/views/ProfileReviewsView.vue')
+  },
+  {
     path: '/recommend',
     name: 'recommend',
     component: () => import('@/views/RecommendView.vue')

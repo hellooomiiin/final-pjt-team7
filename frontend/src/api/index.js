@@ -28,7 +28,11 @@ api.interceptors.response.use(
   async (error) => {
     const originalRequest = error.config
 
-    if (error.response?.status === 401 && !originalRequest._retry) {
+    // 로그인/회원가입 API는 Interceptor에서 제외
+    const isAuthEndpoint = originalRequest.url?.includes('/accounts/login/') || 
+                          originalRequest.url?.includes('/accounts/register/')
+
+    if (error.response?.status === 401 && !originalRequest._retry && !isAuthEndpoint) {
       originalRequest._retry = true
       const authStore = useAuthStore()
 
@@ -45,7 +49,10 @@ api.interceptors.response.use(
         return api(originalRequest)
       } catch (refreshError) {
         authStore.logout()
-        window.location.href = '/login'
+        // 로그인 페이지가 아닐 때만 리다이렉트
+        if (window.location.pathname !== '/login') {
+          window.location.href = '/login?logout=expired'
+        }
         return Promise.reject(refreshError)
       }
     }
