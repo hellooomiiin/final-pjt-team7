@@ -51,6 +51,7 @@ INSTALLED_APPS = [
     'accounts',
     'movies',
     'community',
+    'recommends',
 ]
 
 MIDDLEWARE = [

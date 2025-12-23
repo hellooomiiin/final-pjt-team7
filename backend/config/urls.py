@@ -11,6 +11,7 @@ urlpatterns = [
     path('api/v1/accounts/', include('accounts.urls')),  # 계정 관련 API (회원가입, 로그인, 프로필 등)
     path('api/v1/movies/', include('movies.urls')),  # 영화 관련 API (인기 영화 목록 등)
     path('api/v1/community/', include('community.urls')),
+    path('api/v1/recommends/', include('recommends.urls')),
 ]
 
 if settings.DEBUG:
