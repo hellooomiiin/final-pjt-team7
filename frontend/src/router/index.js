@@ -1,4 +1,6 @@
 import { createRouter, createWebHistory } from 'vue-router'
+import RecommendView from '@/views/RecommendView.vue'
+
 
 const routes = [
   {
@@ -45,6 +47,11 @@ const routes = [
     path: '/profile/reviews',
     name: 'ProfileReviews',
     component: () => import('@/views/ProfileReviewsView.vue')
+  },
+  {
+    path: '/recommend',
+    name: 'recommend',
+    component: () => import('@/views/RecommendView.vue')
   }
 ]
 
