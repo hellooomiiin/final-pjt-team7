@@ -40,12 +40,13 @@
         <!-- 리뷰 섹션 -->
         <div v-if="movie" class="reviews-section mt-5">
           <div class="d-flex justify-content-between align-items-center mb-3">
-            <h3 class="section-title">리뷰</h3>
+            <h3 class="section-title">리뷰 ({{ movie.review_set ? movie.review_set.length : 0 }})</h3>
+            
             <router-link 
-              :to="`/movies/${movie.id}/reviews`" 
+              :to="{ name: 'movie-reviews', params: { id: movie.id } }" 
               class="btn btn-outline-secondary"
             >
-              더보기 →
+              전체보기 →
             </router-link>
           </div>
           <div v-if="reviewsLoading" class="text-center">
@@ -53,25 +54,42 @@
               <span class="visually-hidden">Loading...</span>
             </div>
           </div>
-          <div v-else-if="reviews.length === 0" class="alert alert-info">
-            아직 리뷰가 없습니다.
+          <div v-if="!movie.review_set || movie.review_set.length === 0" class="alert alert-info">
+            아직 리뷰가 없습니다. 첫 리뷰를 작성해보세요!
           </div>
           <div v-else>
             <div
-              v-for="review in reviews.slice(0, 3)"
+              v-for="review in movie.review_set.slice(0, 3)"
               :key="review.id"
-              class="card mb-3"
+              class="card mb-3 hover-effect"
+              style="cursor: pointer;"
+              @click="$router.push({ name: 'review-detail', params: { id: movie.id, reviewId: review.id } })"
             >
               <div class="card-body">
-                <h5 class="card-title">{{ review.title }}</h5>
-                <p class="card-text">{{ review.content }}</p>
-                <div class="mb-2">
-                  <span class="badge bg-primary me-2">평점: {{ review.rating }}/5</span>
+                <div class="d-flex justify-content-between">
+                  <h5 class="card-title text-truncate" style="max-width: 70%;">
+                    {{ review.title }} 
+                  </h5>
+                  <span class="badge bg-warning text-dark align-self-start">★ {{ review.rank }}</span>
                 </div>
-                <small class="text-muted">
-                  작성자: {{ review.user.nickname }} | 
-                  작성일: {{ formatDate(review.created_at) }}
-                </small>
+                
+                <p class="card-text text-truncate text-muted my-2">{{ review.content }}</p>
+                
+                <div class="d-flex justify-content-between align-items-center mt-3">
+                  <small class="text-muted">
+                    by {{ review.user }} | {{ new Date(review.created_at).toLocaleDateString() }}
+                  </small>
+                  
+                  <div class="d-flex gap-3 text-secondary small">
+                    <span>
+                      ❤ {{ review.like_count || 0 }}
+                    </span>
+                    <span>
+                      💬 {{ review.comments ? review.comments.length : 0 }}
+                    </span>
+                  </div>
+                </div>
+
               </div>
             </div>
           </div>
@@ -84,79 +102,49 @@
   </div>
 </template>
 
-<script>
+<script setup>
 import { ref, onMounted } from 'vue'
-import { useRoute } from 'vue-router'
-import { mockApi } from '@/data/mockData'
+import { useRoute, useRouter } from 'vue-router'
+import { useAuthStore } from '@/stores/auth' // ★ 스토어 가져오기
+import axios from 'axios'
 
-export default {
-  name: 'MovieDetailView',
-  setup() {
-    const route = useRoute()
-    const movie = ref(null)
-    const loading = ref(true)
-    const reviews = ref([])
-    const reviewsLoading = ref(true)
+const route = useRoute()
+const router = useRouter()
+const store = useAuthStore() // ★ 스토어 사용
 
-    const fetchMovieDetail = async () => {
-      try {
-        const movieId = route.params.id
-        const response = await mockApi.getMovieDetail(movieId)
-        movie.value = response.data
-      } catch (error) {
-        console.error('영화 상세 정보 로드 실패:', error)
-      } finally {
-        loading.value = false
-      }
-    }
+const movie = ref(null)
+const loading = ref(true) // 로딩 상태 추가
 
-    const fetchReviews = async () => {
-      if (!movie.value) return
-      
-      reviewsLoading.value = true
-      try {
-        const response = await mockApi.getReviews({ 
-          movie: movie.value.id,
-          ordering: '-created_at' // 최신순 정렬
-        })
-        if (response.data.results) {
-          reviews.value = response.data.results
-        } else {
-          reviews.value = response.data || []
-        }
-      } catch (error) {
-        console.error('리뷰 로드 실패:', error)
-      } finally {
-        reviewsLoading.value = false
-      }
-    }
-
-    const formatDate = (dateString) => {
-      if (!dateString) return ''
-      const date = new Date(dateString)
-      return date.toLocaleDateString('ko-KR', {
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric'
-      })
-    }
-
-    onMounted(async () => {
-      await fetchMovieDetail()
-      if (movie.value) {
-        await fetchReviews()
+const getMovieDetail = async () => {
+  loading.value = true
+  try {
+    const res = await axios({
+      method: 'get',
+      url: `http://127.0.0.1:8000/api/v1/movies/${route.params.id}/`,
+      headers: {
+        // ★ [핵심] 상세 페이지도 토큰을 'Bearer'로 보내야 리뷰(review_set)를 줍니다!
+        Authorization: `Bearer ${store.token}` 
       }
     })
+    
+    movie.value = res.data
+    console.log('영화 데이터 확인:', res.data) // 콘솔에서 review_set이 들어있는지 확인해보세요!
 
-    return {
-      movie,
-      loading,
-      reviews,
-      reviewsLoading,
-      formatDate
-    }
+  } catch (err) {
+    console.error(err)
+  } finally {
+    loading.value = false
   }
 }
+
+// 날짜 예쁘게 바꾸는 함수
+const formatDate = (dateString) => {
+  return new Date(dateString).toLocaleDateString()
+}
+
+onMounted(() => {
+  getMovieDetail()
+})
 </script>
 
 <style scoped>

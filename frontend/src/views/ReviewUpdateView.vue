@@ -1,0 +1,86 @@
+<script setup>
+import { ref, onMounted } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
+import { useAuthStore } from '@/stores/auth'
+import axios from 'axios'
+
+const route = useRoute()
+const router = useRouter()
+const store = useAuthStore()
+
+const title = ref('')
+const content = ref('')
+const rank = ref(0)
+
+// 1. 기존 리뷰 데이터 가져오기
+const getReview = async () => {
+  try {
+    const res = await axios({
+      method: 'get',
+      url: `http://127.0.0.1:8000/api/v1/community/reviews/${route.params.reviewId}/`,
+      headers: { Authorization: `Bearer ${store.token}` }
+    })
+    // 가져온 데이터로 빈칸 채우기
+    title.value = res.data.title
+    content.value = res.data.content
+    rank.value = res.data.rank
+  } catch (err) {
+    console.error(err)
+  }
+}
+
+// 2. 수정 요청 보내기 (PUT)
+const updateReview = async () => {
+  try {
+    await axios({
+      method: 'put', // ★ 수정은 put!
+      url: `http://127.0.0.1:8000/api/v1/community/reviews/${route.params.reviewId}/`,
+      headers: { Authorization: `Bearer ${store.token}` },
+      data: {
+        title: title.value,
+        content: content.value,
+        rank: rank.value,
+        movie: Number(route.params.id) // 영화 ID 필수
+      }
+    })
+    
+    alert('수정 완료!')
+    // 수정 후 상세 페이지로 이동
+    router.push({ 
+      name: 'review-detail', 
+      params: { id: route.params.id, reviewId: route.params.reviewId } 
+    })
+    
+  } catch (err) {
+    console.error(err)
+    alert('수정 실패...')
+  }
+}
+
+onMounted(() => {
+  getReview()
+})
+</script>
+
+<template>
+  <div class="container mt-5">
+    <h1>리뷰 수정</h1>
+    <hr>
+    <form @submit.prevent="updateReview">
+      <div class="mb-3">
+        <label for="title" class="form-label">제목</label>
+        <input type="text" id="title" class="form-control" v-model="title" required>
+      </div>
+      <div class="mb-3">
+        <label for="rank" class="form-label">평점 (1~10)</label>
+        <input type="number" id="rank" class="form-control" v-model="rank" min="1" max="10" required>
+      </div>
+      <div class="mb-3">
+        <label for="content" class="form-label">내용</label>
+        <textarea id="content" class="form-control" v-model="content" rows="5" required></textarea>
+      </div>
+      <button type="submit" class="btn btn-primary">수정완료</button>
+      <button type="button" @click="router.go(-1)" class="btn btn-secondary ms-2">취소</button>
+    </form>
+  </div>
+</template>

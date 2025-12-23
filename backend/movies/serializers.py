@@ -3,7 +3,8 @@ from .models import (
     Movie, Genre, Person, MovieCast, MovieCrew,
     MovieKeyword, MovieImage, MovieVideo, UserMovieWishlist
 )
-
+from community.serializers import ReviewSerializer
+        
 
 class GenreSerializer(serializers.ModelSerializer):
     class Meta:
@@ -71,6 +72,7 @@ class MovieDetailSerializer(serializers.ModelSerializer):
     images = MovieImageSerializer(many=True, read_only=True)
     videos = MovieVideoSerializer(many=True, read_only=True)
     is_wishlisted = serializers.SerializerMethodField()
+    review_set = ReviewSerializer(many=True, read_only=True)
 
     class Meta:
         model = Movie
@@ -79,7 +81,7 @@ class MovieDetailSerializer(serializers.ModelSerializer):
             'release_date', 'poster_path', 'backdrop_path', 'vote_average',
             'vote_count', 'popularity', 'genres', 'runtime', 'tagline',
             'cast', 'crew', 'keywords', 'images', 'videos', 'is_wishlisted',
-            'created_at', 'updated_at'
+            'created_at', 'updated_at', 'review_set'
         )
 
     def get_is_wishlisted(self, obj):
@@ -87,4 +89,4 @@ class MovieDetailSerializer(serializers.ModelSerializer):
         if request and request.user.is_authenticated:
             return UserMovieWishlist.objects.filter(user=request.user, movie=obj).exists()
         return False
-
+    

@@ -3,6 +3,7 @@ from rest_framework.routers import DefaultRouter
 from . import views
 
 router = DefaultRouter()
+
 router.register(r'', views.MovieViewSet, basename='movie') # 영화 목록, 상세 조회
 
 urlpatterns = [

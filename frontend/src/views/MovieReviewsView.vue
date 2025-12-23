@@ -1,377 +1,154 @@
+<script setup>
+import { ref, onMounted, computed } from 'vue' // ★ computed 추가
+import { useRoute, useRouter } from 'vue-router'
+import { useAuthStore } from '@/stores/auth'
+import axios from 'axios'
+
+const route = useRoute()
+const router = useRouter()
+const store = useAuthStore()
+
+const movie = ref(null)
+const sortBy = ref('latest') // ★ 정렬 기준 (기본값: 최신순)
+
+const isEdited = (created, updated) => {
+  const createdTime = new Date(created).getTime()
+  const updatedTime = new Date(updated).getTime()
+  return updatedTime - createdTime > 2000 
+}
+
+const getMovieDetail = async () => {
+  try {
+    const res = await axios({
+      method: 'get',
+      url: `http://127.0.0.1:8000/api/v1/movies/${route.params.id}/`,
+      headers: { Authorization: `Bearer ${store.token}` }
+    })
+    movie.value = res.data
+  } catch (err) {
+    console.error(err)
+  }
+}
+
+// ★ [핵심] 정렬된 리뷰 목록을 반환하는 computed 함수
+const sortedReviews = computed(() => {
+  if (!movie.value || !movie.value.review_set) return []
+
+  // 원본 배열을 복사([...])해서 정렬해야 안전함
+  const reviews = [...movie.value.review_set]
+
+  if (sortBy.value === 'latest') {
+    // 최신순 (날짜 내림차순)
+    return reviews.sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
+  } else if (sortBy.value === 'oldest') {
+    // 오래된 순 (날짜 오름차순)
+    return reviews.sort((a, b) => new Date(a.created_at) - new Date(b.created_at))
+  } else if (sortBy.value === 'highRank') {
+    // 평가 높은순 (평점 내림차순)
+    return reviews.sort((a, b) => b.rank - a.rank)
+  } else if (sortBy.value === 'lowRank') {
+    // 평가 낮은순 (평점 오름차순)
+    return reviews.sort((a, b) => a.rank - b.rank)
+  } else if (sortBy.value === 'likes') {
+    // 좋아요 순 (좋아요 수 내림차순)
+    return reviews.sort((a, b) => (b.like_count || 0) - (a.like_count || 0))
+  }
+  return reviews
+})
+
+const goDetail = (reviewId) => {
+  router.push({ name: 'review-detail', params: { id: route.params.id, reviewId: reviewId } })
+}
+
+const goCreateReview = () => {
+  router.push({ name: 'review-create', params: { id: route.params.id } })
+}
+
+onMounted(() => {
+  getMovieDetail()
+})
+</script>
+
 <template>
-  <div class="movie-reviews-container">
-    <div class="container">
-      <!-- 뒤로가기 버튼 -->
-      <div class="mb-4">
-        <button @click="$router.back()" class="btn btn-outline-secondary">
-          ← 뒤로가기
-        </button>
-      </div>
-
-      <!-- 로딩 상태 -->
-      <div v-if="loading" class="text-center loading-spinner">
-        <div class="spinner-border text-danger" role="status">
-          <span class="visually-hidden">Loading...</span>
-        </div>
-      </div>
-
-      <!-- 영화 정보 및 리뷰 목록 -->
-      <div v-else-if="movie">
-        <!-- 영화 정보 헤더 -->
-        <div class="movie-header mb-4">
-          <div class="row align-items-center">
-            <div class="col-md-2">
-              <img
-                :src="movie.poster_path || '/placeholder.jpg'"
-                class="movie-poster"
-                :alt="movie.title"
-              />
-            </div>
-            <div class="col-md-10">
-              <h1 class="movie-title">{{ movie.title }}</h1>
-              <p v-if="movie.original_title" class="movie-original-title">
-                {{ movie.original_title }}
-              </p>
-            </div>
-          </div>
-        </div>
-
-        <!-- 정렬 필터 -->
-        <div class="filter-section mb-4">
-          <div class="d-flex justify-content-between align-items-center">
-            <h2 class="section-title mb-0">리뷰 목록 ({{ reviews.length }}개)</h2>
-            <select v-model="sortOrder" @change="handleSortChange" class="form-select sort-select">
-              <option value="-created_at">최신 순</option>
-              <option value="created_at">오래된 순</option>
-              <option value="-like_count">좋아요 순</option>
-              <option value="-rating">높은 평가 순</option>
-              <option value="rating">낮은 평가 순</option>
-            </select>
-          </div>
-        </div>
-
-        <!-- 리뷰 목록 -->
-        <div v-if="reviewsLoading" class="text-center">
-          <div class="spinner-border" role="status">
-            <span class="visually-hidden">Loading...</span>
-          </div>
-        </div>
-        <div v-else-if="reviews.length === 0" class="alert alert-info">
-          아직 리뷰가 없습니다.
-        </div>
-        <div v-else class="reviews-list">
-          <div
-            v-for="review in reviews"
-            :key="review.id"
-            class="card mb-3 review-card"
-          >
-            <div class="card-body">
-              <div class="d-flex justify-content-between align-items-start mb-2">
-                <h5 class="card-title mb-0">{{ review.title }}</h5>
-                <span class="badge bg-primary">평점: {{ review.rating }}/5</span>
-              </div>
-              <p class="card-text">{{ review.content }}</p>
-              <div class="d-flex justify-content-between align-items-center mt-3">
-                <small class="text-muted">
-                  작성자: {{ review.user?.nickname || '익명' }} | 
-                  작성일: {{ formatDate(review.created_at) }}
-                </small>
-                <button
-                  @click="toggleLike(review)"
-                  class="btn btn-sm"
-                  :class="review.is_liked ? 'btn-danger' : 'btn-outline-danger'"
-                  :disabled="likeLoading"
-                >
-                  <span v-if="review.is_liked">❤️</span>
-                  <span v-else>🤍</span>
-                  좋아요 ({{ review.like_count || 0 }})
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- 영화 정보 없음 -->
-      <div v-else class="alert alert-info">
-        영화 정보를 찾을 수 없습니다.
+  <div class="container mt-5" v-if="movie">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+      <h3>{{ movie.title }}의 리뷰 ({{ movie.review_set ? movie.review_set.length : 0 }}개)</h3>
+      
+      <div class="d-flex gap-2">
+        <button @click="goCreateReview" class="btn btn-primary">리뷰 작성하기</button>
+        <button @click="router.go(-1)" class="btn btn-secondary">뒤로가기</button>
       </div>
     </div>
+    <hr>
+
+    <div class="d-flex justify-content-end mb-3" v-if="movie.review_set && movie.review_set.length > 0">
+      <select v-model="sortBy" class="form-select w-auto">
+        <option value="latest">최신순 (기본)</option>
+        <option value="oldest">오래된 순</option>
+        <option value="highRank">평점 높은 순</option>
+        <option value="lowRank">평점 낮은 순</option>
+        <option value="likes">좋아요 많은 순</option>
+      </select>
+    </div>
+
+    <div v-if="sortedReviews.length > 0">
+      <div 
+        v-for="review in sortedReviews" 
+        :key="review.id" 
+        @click="goDetail(review.id)" 
+        class="card mb-3 hover-effect"
+        style="cursor: pointer;"
+      >
+        <div class="card-body">
+          <div class="d-flex justify-content-between align-items-start">
+            <h5 class="card-title text-truncate mb-0" style="max-width: 80%;">
+              {{ review.title }} 
+            </h5>
+            <span class="badge bg-warning text-dark">★ {{ review.rank }}</span>
+          </div>
+          
+          <h6 class="card-subtitle my-2 text-muted small">
+            작성자: {{ review.user }}
+          </h6>
+          
+          <p class="card-text text-truncate">{{ review.content }}</p>
+          
+          <div class="d-flex justify-content-between align-items-center mt-3 border-top pt-2">
+            <small class="text-muted">
+              {{ new Date(review.created_at).toLocaleString() }}
+              <span v-if="isEdited(review.created_at, review.updated_at)" class="ms-1 text-secondary fw-bold">
+                (수정됨)
+              </span>
+            </small>
+            
+            <div class="d-flex gap-3 text-secondary small">
+              <span class="d-flex align-items-center gap-1">
+                ❤ {{ review.like_count || 0 }}
+              </span>
+              <span class="d-flex align-items-center gap-1">
+                💬 {{ review.comments ? review.comments.length : 0 }}
+              </span>
+          </div>
+        </div>
+
+        </div>
+      </div>
+    </div>
+
+    <div v-else class="text-center py-5">
+      <p class="text-muted">아직 작성된 리뷰가 없습니다.</p>
+      <p>첫 번째 리뷰의 주인공이 되어보세요!</p>
+    </div>
+
+  </div>
+  <div v-else class="text-center mt-5">
+    <p>로딩중...</p>
   </div>
 </template>
 
-<script>
-import { ref, onMounted } from 'vue'
-import { useRoute } from 'vue-router'
-import { mockApi } from '@/data/mockData'
-
-export default {
-  name: 'MovieReviewsView',
-  setup() {
-    const route = useRoute()
-    const movie = ref(null)
-    const reviews = ref([])
-    const loading = ref(true)
-    const reviewsLoading = ref(true)
-    const likeLoading = ref(false)
-    const sortOrder = ref('-created_at') // 기본값: 최신순
-
-    // 영화 상세 정보 조회
-    const fetchMovieDetail = async () => {
-      try {
-        const movieId = route.params.id
-        const response = await mockApi.getMovieDetail(movieId)
-        movie.value = response.data
-      } catch (error) {
-        console.error('영화 상세 정보 로드 실패:', error)
-      } finally {
-        loading.value = false
-      }
-    }
-
-    // 리뷰 목록 조회
-    const fetchReviews = async () => {
-      if (!movie.value) return
-      
-      reviewsLoading.value = true
-      try {
-        const response = await mockApi.getReviews({ 
-          movie: movie.value.id,
-          ordering: sortOrder.value
-        })
-        if (response.data.results) {
-          reviews.value = response.data.results
-        } else {
-          reviews.value = response.data || []
-        }
-      } catch (error) {
-        console.error('리뷰 로드 실패:', error)
-      } finally {
-        reviewsLoading.value = false
-      }
-    }
-
-    // 정렬 변경 핸들러
-    const handleSortChange = () => {
-      fetchReviews()
-    }
-
-    // 좋아요 토글
-    const toggleLike = async (review) => {
-      if (likeLoading.value) return
-      
-      likeLoading.value = true
-      try {
-        // TODO: 실제 API 호출로 대체
-        // const api = (await import('@/api')).default
-        // if (review.is_liked) {
-        //   await api.delete(`/reviews/${review.id}/like/`)
-        // } else {
-        //   await api.post(`/reviews/${review.id}/like/`)
-        // }
-        
-        // 모킹: 로컬 상태만 업데이트
-        review.is_liked = !review.is_liked
-        review.like_count = review.is_liked 
-          ? (review.like_count || 0) + 1 
-          : Math.max(0, (review.like_count || 0) - 1)
-      } catch (error) {
-        console.error('좋아요 처리 실패:', error)
-      } finally {
-        likeLoading.value = false
-      }
-    }
-
-    // 날짜 포맷팅
-    const formatDate = (dateString) => {
-      if (!dateString) return ''
-      const date = new Date(dateString)
-      return date.toLocaleDateString('ko-KR', {
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric'
-      })
-    }
-
-    onMounted(async () => {
-      await fetchMovieDetail()
-      if (movie.value) {
-        await fetchReviews()
-      }
-    })
-
-    return {
-      movie,
-      reviews,
-      loading,
-      reviewsLoading,
-      likeLoading,
-      sortOrder,
-      handleSortChange,
-      toggleLike,
-      formatDate
-    }
-  }
-}
-</script>
-
 <style scoped>
-.movie-reviews-container {
-  min-height: calc(100vh - 80px);
-  background-color: #ffffff;
-  padding: 3rem 0;
-  color: #000000;
-}
-
-.loading-spinner {
-  padding: 5rem 0;
-}
-
-.movie-header {
-  padding: 2rem 0;
-  border-bottom: 1px solid #000000;
-}
-
-.movie-poster {
-  width: 100%;
-  max-width: 150px;
-  height: auto;
-  border: 1px solid #000000;
-}
-
-.movie-title {
-  font-size: 2rem;
-  font-weight: bold;
-  color: #000000;
-  margin-bottom: 0.5rem;
-}
-
-.movie-original-title {
-  font-size: 1.2rem;
-  color: #666666;
-  margin-bottom: 0;
-}
-
-.filter-section {
-  padding: 1.5rem 0;
-}
-
-.section-title {
-  font-size: 1.5rem;
-  font-weight: bold;
-  color: #000000;
-}
-
-.sort-select {
-  max-width: 200px;
-  border: 1px solid #000000;
-  color: #000000;
-  background-color: #ffffff;
-}
-
-.sort-select:focus {
-  border-color: #000000;
-  box-shadow: 0 0 0 0.2rem rgba(0, 0, 0, 0.25);
-}
-
-.reviews-list {
-  margin-top: 2rem;
-}
-
-.review-card {
-  background-color: #ffffff;
-  border: 1px solid #000000;
-  color: #000000;
-  transition: transform 0.2s, box-shadow 0.2s;
-}
-
-.review-card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-}
-
-.card-title {
-  font-size: 1.25rem;
-  font-weight: bold;
-  color: #000000;
-}
-
-.card-text {
-  color: #000000;
-  line-height: 1.6;
-  margin-bottom: 0;
-}
-
-.alert-info {
-  background-color: #ffffff;
-  border: 1px solid #000000;
-  color: #000000;
-  padding: 2rem;
-  text-align: center;
-  margin-top: 2rem;
-}
-
-.btn-outline-secondary {
-  border: 1px solid #000000;
-  color: #000000;
-  background-color: #ffffff;
-}
-
-.btn-outline-secondary:hover {
-  background-color: #000000;
-  color: #ffffff;
-}
-
-.btn-outline-danger {
-  border: 1px solid #dc3545;
-  color: #dc3545;
-  background-color: #ffffff;
-}
-
-.btn-outline-danger:hover {
-  background-color: #dc3545;
-  color: #ffffff;
-}
-
-.btn-danger {
-  background-color: #dc3545;
-  border-color: #dc3545;
-  color: #ffffff;
-}
-
-.btn-danger:hover {
-  background-color: #c82333;
-  border-color: #bd2130;
-}
-
-.badge {
-  font-size: 0.9rem;
-  padding: 0.5rem 0.75rem;
-}
-
-@media (max-width: 768px) {
-  .movie-title {
-    font-size: 1.5rem;
-  }
-  
-  .movie-poster {
-    margin-bottom: 1rem;
-  }
-  
-  .filter-section {
-    flex-direction: column;
-    gap: 1rem;
-  }
-  
-  .filter-section .d-flex {
-    flex-direction: column;
-    align-items: flex-start !important;
-    gap: 1rem;
-  }
-  
-  .sort-select {
-    width: 100%;
-    max-width: none;
-  }
+.hover-effect:hover {
+  background-color: #f8f9fa;
+  transition: 0.3s;
 }
 </style>

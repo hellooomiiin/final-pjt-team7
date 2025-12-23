@@ -1,5 +1,6 @@
 from django.db import models
 from django.core.validators import MinValueValidator, MaxValueValidator
+from django.conf import settings
 
 
 class Genre(models.Model):
@@ -112,4 +113,5 @@ class UserMovieWishlist(models.Model):
     class Meta:
         unique_together = ['user', 'movie']
         ordering = ['-created_at']
-
+        
+        
