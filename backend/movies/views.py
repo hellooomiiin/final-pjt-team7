@@ -1,7 +1,9 @@
-from rest_framework.decorators import api_view
+from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
 from rest_framework import status
 from django.shortcuts import get_object_or_404, get_list_or_404
+from rest_framework.permissions import IsAuthenticated
+
 from .models import Movie
 from .serializers import MovieListSerializer, MovieDetailSerializer
 
@@ -37,3 +39,36 @@ def movie_list_by_ids(request):
     movies = Movie.objects.filter(tmdb_id__in=id_list)
     serializer = MovieListSerializer(movies, many=True)
     return Response(serializer.data)
+
+
+# 찜하기 기능 (토글)
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def likes(request, movie_pk):
+    movie = get_object_or_404(Movie, pk=movie_pk)
+    
+    # 이미 찜한 상태면 -> 취소 (remove)
+    if movie.like_users.filter(pk=request.user.pk).exists():
+        movie.like_users.remove(request.user)
+        is_liked = False
+    # 찜하지 않은 상태면 -> 추가 (add)
+    else:
+        movie.like_users.add(request.user)
+        is_liked = True
+        
+    context = {
+        'is_liked': is_liked,
+        'count': movie.like_users.count() # 현재 찜한 사람 수도 같이 반환하면 좋음
+    }
+    return Response(context, status=status.HTTP_200_OK)
+
+
+# 내가 찜한 영화 목록 조회
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def my_like_movies(request):
+    # 역참조(related_name)를 이용해 내가 찜한 영화들을 가져옴
+    movies = request.user.like_movies.all().order_by('-pk') # 최신순 정렬
+    
+    serializer = MovieListSerializer(movies, many=True)
+    return Response(serializer.data, status=status.HTTP_200_OK)

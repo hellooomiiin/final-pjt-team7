@@ -59,6 +59,11 @@
               <span class="menu-text">리뷰</span>
               <span class="menu-arrow">→</span>
             </router-link>
+            <router-link to="/profile/dibs" class="menu-button">
+              <span class="menu-icon">❤️</span>
+              <span class="menu-text">찜</span>
+              <span class="menu-arrow">→</span>
+            </router-link>
           </div>
         </div>
       </div>

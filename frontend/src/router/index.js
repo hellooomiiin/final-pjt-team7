@@ -74,6 +74,11 @@ const routes = [
     component: () => import('@/views/ProfileReviewsView.vue')
   },
   {
+    path: '/profile/dibs',
+    name: 'ProfileDibs',
+    component: () => import('@/views/ProfileDibsView.vue')
+  },
+  {
     path: '/recommend',
     name: 'recommend',
     component: () => import('@/views/RecommendView.vue')
