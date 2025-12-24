@@ -1,14 +1,19 @@
 <template>
   <div class="home-container">
-    <div v-if="showMoodModal" class="modal-overlay">
+    <div v-if="showMoodModal" class="modal-overlay" @click.self="closeModal">
       <div class="modal-content">
         <h3 class="modal-title">오늘의 기분은 어떠신가요?</h3>
         <p class="modal-subtitle">기분에 딱 맞는 영화를 추천해 드릴게요.</p>
         
         <div class="mood-buttons">
-          <button @click="selectMood('bored')" class="btn-mood">🥱 심심함</button>
-          <button @click="selectMood('angry')" class="btn-mood">😡 화나는</button>
-          <button @click="selectMood('sad')" class="btn-mood">😢 슬픈</button>
+          <button 
+            v-for="mood in moodOptions" 
+            :key="mood.key"
+            @click="selectMood(mood.key)" 
+            class="btn-mood"
+          >
+            <span class="emoji">{{ mood.emoji }}</span> {{ mood.label }}
+          </button>
         </div>
         
         <button class="btn-close-modal" @click="closeModal">닫기</button>
@@ -25,6 +30,9 @@
           <p class="welcome-subtitle">
             AI가 당신의 기분을 분석하여 완벽한 영화를 추천해드립니다
           </p>
+          <button v-if="!showMoodModal" @click="showMoodModal = true" class="btn btn-outline-dark btn-sm mt-2">
+            ✨ 기분 다시 선택하기
+          </button>
         </div>
       </div>
 
@@ -53,7 +61,7 @@
                   :alt="movie.title"
                 />
               </div>
-              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -62,27 +70,33 @@
 </template>
 
 <script>
-import { useAuthStore } from '@/stores/auth'  // 인증 상태 확인을 위한 Pinia 스토어 import
+import { useAuthStore } from '@/stores/auth'
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import axios from 'axios' // [변경] axios 임포트
+import axios from 'axios'
 
 export default {
   name: 'HomeView',
   setup() {
     const router = useRouter()
-    const authStore = useAuthStore()  // 인증 스토어 인스턴스 생성 (로그인 상태 확인용) 
+    const authStore = useAuthStore()
+    
     const popularMovies = ref([])
     const loading = ref(true)
-    
-    // 모달 관련 상태
     const showMoodModal = ref(false)
-    const isLoggedIn = ref(true) // 나중에 Store(Pinia)로 교체 필요
 
-    // [변경] Django API 호출 함수
+    // [수정] 백엔드 매핑과 일치하는 5가지 감정 옵션 정의
+    const moodOptions = [
+      { key: 'bored', label: '심심해요', emoji: '🥱' },
+      { key: 'angry', label: '화나요', emoji: '😡' },
+      { key: 'sad', label: '슬퍼요', emoji: '😢' },
+      { key: 'happy', label: '행복해요', emoji: '🥰' },
+      { key: 'stressed', label: '스트레스!', emoji: '🤯' },
+    ]
+
+    // 인기 영화 가져오기
     const fetchPopularMovies = async () => {
       try {
-        // Django 서버 주소 (http://127.0.0.1:8000/api/v1/movies/popular/)
         const response = await axios.get('http://127.0.0.1:8000/api/v1/movies/popular/')
         popularMovies.value = response.data
       } catch (error) {
@@ -92,28 +106,27 @@ export default {
       }
     }
 
-    // [추가] 이미지 전체 URL 생성 함수
     const getImageUrl = (path) => {
-      if (!path) return '/placeholder.jpg' // 이미지가 없으면 로컬 대체 이미지
+      if (!path) return '/assets/no-poster.png'
       return `https://image.tmdb.org/t/p/w500${path}`
     }
 
-    // [변경] movie.tmdb_id를 받아서 이동
     const goToMovieDetail = (movieId) => {
       router.push(`/movies/${movieId}`)
     }
 
     const selectMood = (mood) => {
-      showMoodModal.value = false // 모달 닫기
+      showMoodModal.value = false
 
-      // 로그인 상태 확인
+      // 로그인 상태 확인 (Pinia Store 사용)
       if (!authStore.isAuthenticated) {
-        // 로그인하지 않았으면 로그인 페이지로 이동
-        router.push('/login')
+        if(confirm('로그인이 필요한 서비스입니다. 로그인 페이지로 이동하시겠습니까?')) {
+            router.push('/login')
+        }
         return
       }
       
-      // 로그인했으면 추천 페이지로 이동
+      // 추천 페이지로 이동
       router.push({ name: 'recommend', query: { mood: mood } })
     }
 
@@ -124,7 +137,8 @@ export default {
     onMounted(() => {
       fetchPopularMovies()
       
-      if (isLoggedIn.value) {
+      // [수정] 로그인한 유저라면 들어오자마자 모달 띄우기
+      if (authStore.isAuthenticated) {
         showMoodModal.value = true
       }
     })
@@ -136,14 +150,16 @@ export default {
       showMoodModal,
       selectMood,
       closeModal,
-      getImageUrl // [추가] 템플릿에서 사용하기 위해 반환
+      getImageUrl,
+      moodOptions, // 템플릿 사용을 위해 반환
+      authStore
     }
   }
 }
 </script>
 
 <style scoped>
-/* 기존 스타일 그대로 유지 */
+/* 기존 스타일 유지 */
 .home-container {
   min-height: calc(100vh - 80px);
   background-color: #ffffff;
@@ -166,7 +182,7 @@ export default {
 .movie-card { background-color: #ffffff; border: 1px solid #000000; overflow: hidden; }
 .movie-poster { width: 100%; height: 400px; object-fit: cover; display: block; }
 
-/* 모달 스타일 */
+/* 모달 스타일 (수정됨) */
 .modal-overlay {
   position: fixed;
   top: 0;
@@ -178,6 +194,7 @@ export default {
   justify-content: center;
   align-items: center;
   z-index: 1000;
+  backdrop-filter: blur(3px); /* 배경 블러 추가 */
 }
 
 .modal-content {
@@ -185,7 +202,7 @@ export default {
   padding: 3rem;
   border-radius: 15px;
   text-align: center;
-  max-width: 500px;
+  max-width: 600px; /* 너비 약간 증가 */
   width: 90%;
   box-shadow: 0 4px 20px rgba(0,0,0,0.2);
 }
@@ -206,6 +223,7 @@ export default {
   gap: 1rem;
   justify-content: center;
   margin-bottom: 2rem;
+  flex-wrap: wrap; /* [중요] 버튼이 많아져서 줄바꿈 허용 */
 }
 
 .btn-mood {
@@ -216,12 +234,18 @@ export default {
   cursor: pointer;
   border-radius: 8px;
   transition: all 0.2s;
+  min-width: 120px; /* 버튼 최소 너비 지정 */
 }
 
 .btn-mood:hover {
   background: #000;
   color: white;
   transform: translateY(-2px);
+  box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+}
+
+.emoji {
+  margin-right: 5px;
 }
 
 .btn-close-modal {

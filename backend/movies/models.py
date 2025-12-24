@@ -15,6 +15,7 @@ class Movie(models.Model):
     # 기본 정보
     title = models.CharField(max_length=200)
     overview = models.TextField(blank=True, null=True)
+    overview_en = models.TextField(blank=True, null=True)
     poster_path = models.CharField(max_length=200, blank=True, null=True) # 이미지 URL 뒷부분
     release_date = models.DateField(blank=True, null=True)
     

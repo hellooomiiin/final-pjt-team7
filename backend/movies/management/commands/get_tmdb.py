@@ -9,6 +9,10 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
         api_key = settings.TMDB_API_KEY
         
+        # [설정] 필터링 기준값
+        MIN_VOTE_COUNT = 100   # 최소 투표 수 (이것보다 적으면 거름)
+        MIN_VOTE_AVERAGE = 4.0 # 최소 평점
+        
         # 1. 장르 데이터 수집 (기존과 동일)
         self.stdout.write('장르 데이터 수집 중...')
         genre_url = f"https://api.themoviedb.org/3/genre/movie/list?api_key={api_key}&language=ko-KR"
@@ -22,61 +26,101 @@ class Command(BaseCommand):
         # 2. 영화 데이터 수집
         self.stdout.write('영화 데이터 수집 중...')
         
-        # 인기 영화 5페이지만 수집 (너무 많이 하면 시간이 오래 걸립니다)
-        for page in range(1, 6):
+        for page in range(1, 10):
+            # 2-1. 목록 가져오기 (한국어 기준)
             url = f"https://api.themoviedb.org/3/movie/popular?api_key={api_key}&language=ko-KR&page={page}"
             response = requests.get(url)
             results = response.json().get('results', [])
 
             for movie_data in results:
+                if movie_data['vote_count'] < MIN_VOTE_COUNT:
+                    self.stdout.write(self.style.WARNING(f"Skipped (Low Votes): {movie_data['title']} ({movie_data['vote_count']})"))
+                    continue
+                
+                if not movie_data['overview']:
+                    self.stdout.write(self.style.WARNING(f"Skipped (No Overview): {movie_data['title']}"))
+                    continue
+                
                 movie_id = movie_data['id']
                 
-                # [핵심] 영화 상세 정보 + 출연진(credits) 추가 호출
-                detail_url = f"https://api.themoviedb.org/3/movie/{movie_id}?api_key={api_key}&language=ko-KR&append_to_response=credits"
-                detail_res = requests.get(detail_url).json()
+                # ---------------------------------------------------------
+                # 한국어 상세 정보 가져오기 (감독, 배우용)
+                detail_url_ko = f"https://api.themoviedb.org/3/movie/{movie_id}?api_key={api_key}&language=ko-KR&append_to_response=credits"
+                detail_res_ko = requests.get(detail_url_ko).json()
 
-                # 2-1. 감독 찾기 (Crew 리스트에서 job이 Director인 사람)
+                # 영어 상세 정보 가져오기 (오직 줄거리용 ⭐)
+                # language='en-US'로 설정해서 확실한 영어 원문
+                detail_url_en = f"https://api.themoviedb.org/3/movie/{movie_id}?api_key={api_key}&language=en-US&append_to_response=keywords"
+                detail_res_en = requests.get(detail_url_en).json()
+                
+                overview_raw = detail_res_en.get('overview', '')
+                tagline_raw = detail_res_en.get('tagline', '')
+                
+                # 2. 키워드 추출 (리스트 형태 -> 문자열로 변환)
+                # 예: ['prison', 'escape'] -> "prison, escape"
+                keywords_data = detail_res_en.get('keywords', {}).get('keywords', [])
+                keywords_list = [k['name'] for k in keywords_data]
+                keywords_str = ", ".join(keywords_list)
+                
+                # 3. 텍스트 합치기 (태그라인 -> 줄거리 -> 키워드 순서)
+                full_text_parts = []
+                
+                if tagline_raw:
+                    full_text_parts.append(f"{tagline_raw}.")  # 태그라인 끝에 마침표 추가
+                
+                if overview_raw:
+                    full_text_parts.append(overview_raw)
+                
+                if keywords_str:
+                    full_text_parts.append(f"Keywords: {keywords_str}.") # 키워드임을 명시
+                
+                # 공백으로 이어 붙이기
+                overview_en = " ".join(full_text_parts)
+                
+                # 4. 만약 다 합쳤는데도 빈 값이면 한국어 줄거리로 대체 (방어 코드)
+                if not overview_en.strip():
+                    overview_en = movie_data['overview']
+                # ---------------------------------------------------------
+
+                # 2-3. 감독 & 배우 찾기 (한국어 응답 기준)
                 director_name = "Unknown"
-                if 'credits' in detail_res and 'crew' in detail_res['credits']:
-                    crew_list = detail_res['credits']['crew']
-                    # 파이썬의 next 함수로 첫 번째 감독만 빠르게 찾기
+                if 'credits' in detail_res_ko and 'crew' in detail_res_ko['credits']:
+                    crew_list = detail_res_ko['credits']['crew']
                     director_entry = next((person for person in crew_list if person['job'] == 'Director'), None)
                     if director_entry:
                         director_name = director_entry['name']
 
-                # 2-2. 배우 찾기 (Cast 리스트에서 상위 5명만 추출)
                 actors_list = []
-                if 'credits' in detail_res and 'cast' in detail_res['credits']:
-                    # 최대 5명까지만 저장
-                    for cast in detail_res['credits']['cast'][:5]:
+                if 'credits' in detail_res_ko and 'cast' in detail_res_ko['credits']:
+                    for cast in detail_res_ko['credits']['cast'][:5]:
                         actors_list.append({
                             'name': cast['name'],
                             'character': cast['character'],
-                            'profile_path': cast['profile_path'] # 배우 사진
+                            'profile_path': cast['profile_path']
                         })
 
-                # 2-3. 개봉일 빈 값 처리
+                # 2-4. 개봉일 빈 값 처리
                 release_date = movie_data.get('release_date') or None
 
-                # 2-4. DB 저장
+                # 2-5. DB 저장
                 movie, created = Movie.objects.update_or_create(
                     tmdb_id=movie_id,
                     defaults={
                         'title': movie_data['title'],
                         'overview': movie_data['overview'],
+                        'overview_en': overview_en, # [확인] 이제 확실한 영어가 들어갑니다!
                         'poster_path': movie_data['poster_path'],
                         'release_date': release_date,
                         'popularity': movie_data['popularity'],
                         'vote_average': movie_data['vote_average'],
                         'vote_count': movie_data['vote_count'],
-                        # [추가된 부분]
-                        'runtime': detail_res.get('runtime'),
+                        'runtime': detail_res_ko.get('runtime'), # 런타임은 한국어 응답에서
                         'director': director_name,
                         'actors': actors_list
                     }
                 )
 
-                # 2-5. 장르 연결
+                # 2-6. 장르 연결 (기존 동일)
                 movie.genres.clear()
                 for genre_id in movie_data.get('genre_ids', []):
                     try:
@@ -85,6 +129,6 @@ class Command(BaseCommand):
                     except Genre.DoesNotExist:
                         pass
                 
-                self.stdout.write(f"Updated: {movie.title}")
+                self.stdout.write(f"Updated: {movie.title} (EN Overview Length: {len(overview_en)}) (Keywords: {len(keywords_list)})")
 
         self.stdout.write(self.style.SUCCESS('데이터 수집 완료!'))

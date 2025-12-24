@@ -121,7 +121,7 @@ export default {
         'angry': '😡 화남',
         'sad': '😢 슬픔',
         'happy': '😊 행복', // 혹시 추가될 경우 대비
-        'excited': '😆 신남'
+        'stressed': '🤯 스트레스'
       }
       return labels[mood] || mood
     }
