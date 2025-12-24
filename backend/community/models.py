@@ -11,7 +11,7 @@ class Review(models.Model):
     
     title = models.CharField(max_length=100) # 제목
     content = models.TextField()             # 내용
-    rank = models.IntegerField(default=5)    # 평점 (아까 프론트에서 rank 보냈죠?)
+    rank = models.FloatField(default=5)    # 평점 (아까 프론트에서 rank 보냈죠?)
     
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)

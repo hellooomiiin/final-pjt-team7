@@ -3,6 +3,7 @@ import { ref, onMounted, computed } from 'vue' // ★ computed 추가
 import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import axios from 'axios'
+import StarDisplay from '@/components/StarDisplay.vue'
 
 const route = useRoute()
 const router = useRouter()

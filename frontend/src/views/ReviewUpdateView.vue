@@ -3,6 +3,7 @@ import { ref, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import axios from 'axios'
+import StarInput from '@/components/StarInput.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -74,19 +75,8 @@ onMounted(() => {
       </div>
 
       <div class="mb-3">
-        <label class="form-label">평점</label>
-        <div class="d-flex gap-3 align-items-center">
-          <label v-for="rating in [1, 2, 3, 4, 5]" :key="rating" class="d-flex align-items-center gap-2">
-            <input 
-              type="radio" 
-              :value="rating" 
-              v-model="rank"
-              class="form-check-input"
-              required
-            >
-            <span>{{ rating }}점</span>
-          </label>
-        </div>
+        <label class="fw-bold">평점 (0.5 단위 선택 가능)</label>
+        <StarInput v-model="rank" />
       </div>
 
       <div class="mb-3">

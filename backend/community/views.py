@@ -88,3 +88,12 @@ def comment_update_delete(request, review_pk, comment_pk):
         if serializer.is_valid(raise_exception=True):
             serializer.save()
             return Response(serializer.data)
+        
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated]) # 로그인한 유저만 접근 가능
+def user_reviews(request):
+    # request.user: 토큰을 통해 확인된 현재 접속 유저
+    reviews = Review.objects.filter(user=request.user).order_by('-created_at')
+    serializer = ReviewSerializer(reviews, many=True)
+    return Response(serializer.data)

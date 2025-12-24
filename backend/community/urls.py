@@ -12,4 +12,6 @@ urlpatterns = [
     # 댓글
     path('reviews/<int:review_pk>/comments/', views.comment_list_create),
     path('reviews/<int:review_pk>/comments/<int:comment_pk>/', views.comment_update_delete),
+    # 프로필/리뷰
+    path('my-reviews/', views.user_reviews),
 ]
