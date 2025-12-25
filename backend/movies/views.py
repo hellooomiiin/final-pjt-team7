@@ -3,9 +3,27 @@ from rest_framework.response import Response
 from rest_framework import status
 from django.shortcuts import get_object_or_404, get_list_or_404
 from rest_framework.permissions import IsAuthenticated
+from django.db.models import Q
 
 from .models import Movie
 from .serializers import MovieListSerializer, MovieDetailSerializer
+
+@api_view(['GET'])
+def movie_list(request):
+    search_keyword = request.GET.get('search', '').strip()
+    
+    if search_keyword:
+        # 제목이나 원제에 검색어가 포함된 영화 검색
+        movies = Movie.objects.filter(
+            Q(title__icontains=search_keyword)
+        ).order_by('-popularity') # 인기도순 정렬
+    else:
+        # 검색어 없으면 빈 리스트 반환 (혹은 전체 목록)
+        movies = [] 
+
+    # 검색 결과 페이지이므로 개수 제한 없이(또는 넉넉하게) 보냅니다.
+    serializer = MovieListSerializer(movies, many=True)
+    return Response(serializer.data)
 
 # 1. Home 페이지: 인기 영화 Top 20 조회
 @api_view(['GET'])

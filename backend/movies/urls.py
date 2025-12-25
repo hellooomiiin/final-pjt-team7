@@ -9,4 +9,6 @@ urlpatterns = [
     path('<int:movie_pk>/likes/', views.likes, name='likes'),
     # 내가 찜한 목록 (GET): /api/v1/movies/my-likes/
     path('my-likes/', views.my_like_movies, name='my_like_movies'),
+    
+    path('', views.movie_list, name='movie_list'),
 ]

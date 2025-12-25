@@ -21,6 +21,17 @@
     </div>
 
     <div class="container">
+			<div class="search-section text-center mb-5">
+        <form @submit.prevent="onSearch" class="search-form">
+          <input 
+            type="text" 
+            v-model="keyword" 
+            class="form-control search-input" 
+            placeholder="영화 제목을 검색해보세요 (예: 해리포터)"
+          >
+          <button type="submit" class="btn btn-dark search-btn">검색</button>
+        </form>
+      </div>
       <div class="welcome-section">
         <div class="welcome-content">
           <h1 class="welcome-title">
@@ -134,6 +145,18 @@ export default {
       showMoodModal.value = false
     }
 
+	// [추가] 검색어 상태
+    const keyword = ref('')
+
+    // [추가] 검색 실행 함수 (엔터 치거나 버튼 누르면 실행)
+    const onSearch = () => {
+      if (keyword.value.trim()) {
+        // 단순하게 /search 페이지로 이동만 시킵니다.
+        // 쿼리 파라미터 q에 검색어를 담아 보냅니다.
+        router.push({ name: 'search', query: { q: keyword.value } })
+      }
+    }
+
     onMounted(() => {
       fetchPopularMovies()
       
@@ -152,7 +175,9 @@ export default {
       closeModal,
       getImageUrl,
       moodOptions, // 템플릿 사용을 위해 반환
-      authStore
+      authStore,
+	  	keyword,
+      onSearch
     }
   }
 }
@@ -254,5 +279,26 @@ export default {
   text-decoration: underline;
   cursor: pointer;
   color: #666;
+}
+
+/* [추가] 검색창 스타일 */
+.search-section {
+  max-width: 600px;
+  margin: 0 auto;
+}
+.search-form {
+  display: flex;
+  gap: 10px;
+}
+.search-input {
+  border-radius: 50px;
+  padding: 1rem 1.5rem;
+  border: 2px solid #000;
+}
+.search-btn {
+  border-radius: 5px;
+  padding: 0 0.2rem;
+  font-weight: bold;
+	width: 5rem;
 }
 </style>

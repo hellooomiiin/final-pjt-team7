@@ -4,6 +4,7 @@ import MovieReviewsView from '@/views/MovieReviewsView.vue'
 import ReviewCreateView from '@/views/ReviewCreateView.vue'
 import ReviewUpdateView from '@/views/ReviewUpdateView.vue'
 import RecommendView from '@/views/RecommendView.vue'
+import SearchView from '@/views/SearchView.vue'
 
 
 const routes = [
@@ -82,7 +83,12 @@ const routes = [
     path: '/recommend',
     name: 'recommend',
     component: () => import('@/views/RecommendView.vue')
-  }
+  },
+  {
+      path: '/search',
+      name: 'search',
+      component: SearchView
+    },
 ]
 
 const router = createRouter({
