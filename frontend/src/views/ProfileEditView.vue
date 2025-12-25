@@ -1,104 +1,100 @@
 <template>
-  <div class="profile-edit-container">
-    <div class="container">
-      <div class="row justify-content-center">
-        <div class="col-md-6">
-          <div class="edit-card">
-            <div class="mb-4">
-              <button @click="$router.push('/profile')" class="btn btn-back">
-                ← 뒤로가기
-              </button>
+  <div class="reviews-container">
+    <div class="reviews-wrapper">
+      <!-- 뒤로가기 버튼 -->
+      <button @click="$router.push('/profile')" class="back-button">
+        ← 뒤로가기
+      </button>
+
+      <div class="edit-card">
+        <h2 class="edit-title">회원정보 수정</h2>
+        <p class="edit-subtitle">프로필 정보를 수정하세요</p>
+        
+        <form @submit.prevent="handleUpdate">
+          <!-- 닉네임 -->
+          <div class="form-group">
+            <label for="nickname" class="form-label">닉네임</label>
+            <div class="input-wrapper">
+              <span class="input-icon">👤</span>
+              <input
+                type="text"
+                class="form-control"
+                id="nickname"
+                v-model="formData.nickname"
+                placeholder="닉네임을 입력하세요"
+                required
+              />
             </div>
-            <h2 class="edit-title">회원정보 수정</h2>
-            <p class="edit-subtitle">프로필 정보를 수정하세요</p>
-            
-            <form @submit.prevent="handleUpdate">
-              <!-- 닉네임 -->
-              <div class="form-group mb-3">
-                <label for="nickname" class="form-label">닉네임</label>
-                <div class="input-wrapper">
-                  <span class="input-icon">👤</span>
-                  <input
-                    type="text"
-                    class="form-control"
-                    id="nickname"
-                    v-model="formData.nickname"
-                    placeholder="닉네임을 입력하세요"
-                    required
-                  />
-                </div>
-              </div>
-
-              <!-- 프로필 이미지 -->
-              <div class="form-group mb-3">
-                <label for="profile_image" class="form-label">프로필 이미지</label>
-                <div class="image-upload-wrapper">
-                  <input
-                    type="file"
-                    class="form-control-file"
-                    id="profile_image"
-                    accept="image/*"
-                    @change="handleImageChange"
-                  />
-                  <p class="image-hint">새 이미지를 선택하세요 (선택사항)</p>
-                  <div v-if="previewImage" class="image-preview">
-                    <img :src="previewImage" alt="프로필 미리보기" />
-                  </div>
-                </div>
-              </div>
-
-              <!-- 새 비밀번호 (선택) -->
-              <div class="form-group mb-3">
-                <label for="new_password" class="form-label">새 비밀번호 (선택사항)</label>
-                <div class="input-wrapper">
-                  <span class="input-icon">🔒</span>
-                  <input
-                    type="password"
-                    class="form-control"
-                    id="new_password"
-                    v-model="formData.new_password"
-                    placeholder="비밀번호를 변경하려면 입력하세요"
-                  />
-                </div>
-              </div>
-
-              <!-- 새 비밀번호 확인 -->
-              <div class="form-group mb-4" v-if="formData.new_password">
-                <label for="password_confirm" class="form-label">새 비밀번호 확인</label>
-                <div class="input-wrapper">
-                  <span class="input-icon">🔒</span>
-                  <input
-                    type="password"
-                    class="form-control"
-                    id="password_confirm"
-                    v-model="formData.password_confirm"
-                    placeholder="비밀번호를 다시 입력하세요"
-                  />
-                </div>
-              </div>
-
-              <!-- 에러 메시지 -->
-              <div v-if="error" class="alert alert-danger" role="alert">
-                {{ error }}
-              </div>
-
-              <!-- 성공 메시지 -->
-              <div v-if="success" class="alert alert-success" role="alert">
-                회원정보가 수정되었습니다.
-              </div>
-
-              <!-- 제출 버튼 -->
-              <button 
-                type="submit" 
-                class="btn btn-update w-100 mb-3"
-                :disabled="loading"
-              >
-                <span v-if="loading" class="spinner-border spinner-border-sm me-2" role="status"></span>
-                {{ loading ? '수정 중...' : '수정 완료' }}
-              </button>
-            </form>
           </div>
-        </div>
+
+          <!-- 프로필 이미지 -->
+          <div class="form-group">
+            <label for="profile_image" class="form-label">프로필 이미지</label>
+            <div class="image-upload-wrapper">
+              <input
+                type="file"
+                class="form-control-file"
+                id="profile_image"
+                accept="image/*"
+                @change="handleImageChange"
+              />
+              <p class="image-hint">새 이미지를 선택하세요 (선택사항)</p>
+              <div v-if="previewImage" class="image-preview">
+                <img :src="previewImage" alt="프로필 미리보기" />
+              </div>
+            </div>
+          </div>
+
+          <!-- 새 비밀번호 (선택) -->
+          <div class="form-group">
+            <label for="new_password" class="form-label">새 비밀번호 (선택사항)</label>
+            <div class="input-wrapper">
+              <span class="input-icon">🔒</span>
+              <input
+                type="password"
+                class="form-control"
+                id="new_password"
+                v-model="formData.new_password"
+                placeholder="비밀번호를 변경하려면 입력하세요"
+              />
+            </div>
+          </div>
+
+          <!-- 새 비밀번호 확인 -->
+          <div class="form-group" v-if="formData.new_password">
+            <label for="password_confirm" class="form-label">새 비밀번호 확인</label>
+            <div class="input-wrapper">
+              <span class="input-icon">🔒</span>
+              <input
+                type="password"
+                class="form-control"
+                id="password_confirm"
+                v-model="formData.password_confirm"
+                placeholder="비밀번호를 다시 입력하세요"
+              />
+            </div>
+          </div>
+
+          <!-- 에러 메시지 -->
+          <div v-if="error" class="alert alert-danger">
+            {{ error }}
+          </div>
+
+          <!-- 성공 메시지 -->
+          <div v-if="success" class="alert alert-success">
+            회원정보가 수정되었습니다.
+          </div>
+
+          <!-- 제출 버튼 -->
+          <button 
+            type="submit" 
+            class="btn-update"
+            :disabled="loading"
+          >
+            <span v-if="loading" class="spinner-border spinner-border-sm me-2" role="status"></span>
+            {{ loading ? '수정 중...' : '수정 완료' }}
+          </button>
+        </form>
       </div>
     </div>
   </div>
@@ -257,44 +253,69 @@ export default {
 </script>
 
 <style scoped>
-.profile-edit-container {
+.reviews-container {
   min-height: calc(100vh - 80px);
-  display: flex;
-  align-items: center;
-  background-color: #ffffff;
+  background-color: #000000;
+  color: #ffffff;
   padding: 2rem 0;
 }
 
-.edit-card {
-  background-color: #ffffff;
-  border: 1px solid #000000;
-  padding: 3rem;
+.reviews-wrapper {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 0 1rem;
+  position: relative;
 }
 
-.btn-back {
-  border: 1px solid #000000;
-  color: #000000;
-  background-color: #ffffff;
-  padding: 0.5rem 1rem;
-  text-decoration: none;
+/* 뒤로가기 버튼 */
+.back-button {
+  background: none;
+  border: none !important;
+  outline: none !important;
+  box-shadow: none !important;
+  color: #999999;
+  font-size: 0.9rem;
   cursor: pointer;
+  padding: 0.5rem 0;
+  margin-bottom: 1.5rem;
+  transition: color 0.2s;
 }
 
-.btn-back:hover {
-  background-color: #000000;
+.back-button:hover {
   color: #ffffff;
+  border: none !important;
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+.back-button:focus {
+  border: none !important;
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+.back-button:active {
+  border: none !important;
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+.edit-card {
+  background-color: #1a1a1a;
+  padding: 22px;
+  border-radius: 8px;
 }
 
 .edit-title {
-  color: #000000;
-  font-size: 2rem;
+  color: #ffffff;
+  font-size: 1.5rem;
   font-weight: bold;
   margin-bottom: 0.5rem;
-  margin-top: 1rem;
+  margin-top: 0;
 }
 
 .edit-subtitle {
-  color: #000000;
+  color: #999999;
   font-size: 1rem;
   margin-bottom: 2rem;
 }
@@ -304,9 +325,10 @@ export default {
 }
 
 .form-label {
-  color: #000000;
+  color: #ffffff;
   font-weight: 500;
   margin-bottom: 0.5rem;
+  display: block;
 }
 
 .input-wrapper {
@@ -324,18 +346,23 @@ export default {
 
 .input-wrapper .form-control {
   padding-left: 45px;
-  background-color: #ffffff;
-  border: 1px solid #000000;
-  color: #000000;
+  background-color: #333333;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #ffffff;
   height: 50px;
+  border-radius: 4px;
 }
 
 .input-wrapper .form-control:focus {
-  background-color: #ffffff;
-  border-color: #000000;
-  color: #000000;
+  background-color: #333333;
+  border-color: rgba(255, 255, 255, 0.3);
+  color: #ffffff;
   outline: none;
-  box-shadow: 0 0 0 0.2rem rgba(0, 0, 0, 0.25);
+  box-shadow: 0 0 0 0.2rem rgba(255, 255, 255, 0.1);
+}
+
+.input-wrapper .form-control::placeholder {
+  color: #666666;
 }
 
 .image-upload-wrapper {
@@ -346,13 +373,14 @@ export default {
 
 .form-control-file {
   padding: 0.5rem;
-  border: 1px solid #000000;
-  background-color: #ffffff;
-  color: #000000;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background-color: #333333;
+  color: #ffffff;
+  border-radius: 4px;
 }
 
 .image-hint {
-  color: #666666;
+  color: #999999;
   font-size: 0.9rem;
   margin: 0;
 }
@@ -365,22 +393,26 @@ export default {
   width: 150px;
   height: 150px;
   object-fit: cover;
-  border: 1px solid #000000;
+  border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 8px;
 }
 
 .btn-update {
-  border: 1px solid #000000;
-  background-color: #ffffff;
-  color: #000000;
+  width: 100%;
+  border: none;
+  background-color: #1a1a1a;
+  color: #ffffff;
   height: 50px;
   font-size: 1.1rem;
   font-weight: bold;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+  margin-top: 1rem;
 }
 
 .btn-update:hover:not(:disabled) {
-  border: 1px solid #000000;
-  background-color: #000000;
+  background-color: #252525;
   color: #ffffff;
 }
 
@@ -390,15 +422,21 @@ export default {
 }
 
 .alert-danger {
-  background-color: #ffffff;
-  border: 1px solid #000000;
+  background-color: #1a1a1a;
+  border: 1px solid rgba(220, 53, 69, 0.5);
   color: #dc3545;
+  padding: 1rem;
+  border-radius: 4px;
+  margin-bottom: 1rem;
 }
 
 .alert-success {
-  background-color: #ffffff;
-  border: 1px solid #000000;
+  background-color: #1a1a1a;
+  border: 1px solid rgba(40, 167, 69, 0.5);
   color: #28a745;
+  padding: 1rem;
+  border-radius: 4px;
+  margin-bottom: 1rem;
 }
 
 .spinner-border-sm {
@@ -408,8 +446,12 @@ export default {
 }
 
 @media (max-width: 768px) {
+  .reviews-wrapper {
+    padding: 0 0.5rem;
+  }
+
   .edit-card {
-    padding: 2rem;
+    padding: 1.5rem;
   }
 
   .edit-title {

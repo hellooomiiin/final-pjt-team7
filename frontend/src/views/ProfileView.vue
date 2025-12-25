@@ -1,34 +1,23 @@
 <template>
-  <div class="profile-container">
-    <div class="container">
+  <div class="reviews-container" v-if="!loading">
+    <div class="reviews-wrapper">
       <!-- 뒤로가기 버튼 -->
-      <div class="mb-4">
-        <button @click="$router.push('/')" class="btn btn-outline-secondary">
-          ← 뒤로가기
-        </button>
-      </div>
-
-      <!-- 로딩 상태 -->
-      <div v-if="loading" class="text-center loading-spinner">
-        <div class="spinner-border text-danger" role="status">
-          <span class="visually-hidden">Loading...</span>
-        </div>
-      </div>
+      <button @click="$router.push('/')" class="back-button">
+        ← 뒤로가기
+      </button>
 
       <!-- 프로필 정보 및 메뉴 -->
-      <div v-else-if="user" class="profile-content">
+      <div v-if="user" class="profile-content">
         <!-- 프로필 헤더 -->
-        <div class="profile-header mb-5">
+        <div class="profile-header">
           <h1 class="profile-title">프로필</h1>
           <div class="profile-info">
             <div class="profile-avatar">
               <img 
-                v-if="user.profile_image" 
-                :src="getImageUrl(user.profile_image)" 
+                :src="getProfileImageUrl()" 
                 alt="프로필 이미지"
                 class="avatar-image"
               />
-              <span v-else class="avatar-icon">👤</span>
             </div>
             <div class="profile-details">
               <h2 class="profile-nickname">{{ user.nickname || '닉네임 없음' }}</h2>
@@ -69,9 +58,14 @@
       </div>
 
       <!-- 사용자 정보 없음 -->
-      <div v-else class="alert alert-info">
-        사용자 정보를 불러올 수 없습니다.
+      <div v-else class="no-reviews">
+        <p>사용자 정보를 불러올 수 없습니다.</p>
       </div>
+    </div>
+  </div>
+  <div v-else class="loading-container">
+    <div class="spinner-border text-light" role="status">
+      <span class="visually-hidden">Loading...</span>
     </div>
   </div>
 </template>
@@ -80,6 +74,7 @@
 import { ref, onMounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
+import noProfileImage from '@/assets/no-profile.png'
 
 export default {
   name: 'ProfileView',
@@ -103,12 +98,20 @@ export default {
 
     // 이미지 URL 생성
     const getImageUrl = (imagePath) => {
-      if (!imagePath) return null
+      if (!imagePath) return noProfileImage
       // 절대 URL이면 그대로 사용
       if (imagePath.startsWith('http')) return imagePath
       // 상대 경로면 백엔드 URL과 결합
       const baseURL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'
       return `${baseURL.replace('/api/v1', '')}/${imagePath}`
+    }
+    
+    // 프로필 이미지 URL 생성 (프로필 이미지가 없으면 no-profile.png 사용)
+    const getProfileImageUrl = () => {
+      if (user.value?.profile_image) {
+        return getImageUrl(user.value.profile_image)
+      }
+      return noProfileImage
     }
 
     // 프로필 정보 불러오기
@@ -138,38 +141,75 @@ export default {
       user,
       loading,
       formatDate,
-      getImageUrl
+      getImageUrl,
+      getProfileImageUrl
     }
   }
 }
 </script>
 
 <style scoped>
-.profile-container {
+.reviews-container {
   min-height: calc(100vh - 80px);
-  background-color: #ffffff;
-  padding: 3rem 0;
-  color: #000000;
+  background-color: #000000;
+  color: #ffffff;
+  padding: 2rem 0;
 }
 
-.loading-spinner {
-  padding: 5rem 0;
+.reviews-wrapper {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 0 1rem;
+  position: relative;
+}
+
+/* 뒤로가기 버튼 */
+.back-button {
+  background: none;
+  border: none !important;
+  outline: none !important;
+  box-shadow: none !important;
+  color: #999999;
+  font-size: 0.9rem;
+  cursor: pointer;
+  padding: 0.5rem 0;
+  margin-bottom: 1.5rem;
+  transition: color 0.2s;
+}
+
+.back-button:hover {
+  color: #ffffff;
+  border: none !important;
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+.back-button:focus {
+  border: none !important;
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+.back-button:active {
+  border: none !important;
+  outline: none !important;
+  box-shadow: none !important;
 }
 
 .profile-content {
-  max-width: 800px;
-  margin: 0 auto;
+  width: 100%;
 }
 
 .profile-header {
   padding: 2rem 0;
-  border-bottom: 1px solid #000000;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  margin-bottom: 2rem;
 }
 
 .profile-title {
-  font-size: 2rem;
+  font-size: 1.5rem;
   font-weight: bold;
-  color: #000000;
+  color: #ffffff;
   margin-bottom: 2rem;
 }
 
@@ -183,11 +223,11 @@ export default {
   width: 100px;
   height: 100px;
   border-radius: 50%;
-  border: 2px solid #000000;
+  border: 2px solid rgba(255, 255, 255, 0.2);
   display: flex;
   align-items: center;
   justify-content: center;
-  background-color: #f0f0f0;
+  background-color: #333333;
   flex-shrink: 0;
 }
 
@@ -209,30 +249,30 @@ export default {
 .profile-nickname {
   font-size: 1.5rem;
   font-weight: bold;
-  color: #000000;
+  color: #ffffff;
   margin-bottom: 0.5rem;
 }
 
 .profile-email {
   font-size: 1rem;
-  color: #666666;
+  color: #999999;
   margin-bottom: 0.5rem;
 }
 
 .profile-date {
   font-size: 0.9rem;
-  color: #888888;
+  color: #999999;
   margin-bottom: 0;
 }
 
 .profile-menu {
-  margin-top: 3rem;
+  margin-top: 2rem;
 }
 
 .menu-title {
   font-size: 1.5rem;
   font-weight: bold;
-  color: #000000;
+  color: #ffffff;
   margin-bottom: 1.5rem;
 }
 
@@ -245,28 +285,17 @@ export default {
 .menu-button {
   display: flex;
   align-items: center;
-  padding: 1.5rem;
-  border: 1px solid #000000;
-  background-color: #ffffff;
-  color: #000000;
+  padding: 22px;
+  background-color: #1a1a1a;
+  color: #ffffff;
   text-decoration: none;
-  transition: all 0.2s;
+  border-radius: 8px;
+  transition: background-color 0.2s;
 }
 
 .menu-button:hover {
-  background-color: #000000;
+  background-color: #252525;
   color: #ffffff;
-}
-
-.menu-button-disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-  pointer-events: none;
-}
-
-.menu-button-disabled:hover {
-  background-color: #ffffff;
-  color: #000000;
 }
 
 .menu-icon {
@@ -286,27 +315,25 @@ export default {
   flex-shrink: 0;
 }
 
-.alert-info {
-  background-color: #ffffff;
-  border: 1px solid #000000;
-  color: #000000;
-  padding: 2rem;
+.no-reviews {
   text-align: center;
-  margin-top: 3rem;
+  padding: 3rem 0;
+  color: #999999;
 }
 
-.btn-outline-secondary {
-  border: 1px solid #000000;
-  color: #000000;
-  background-color: #ffffff;
-}
-
-.btn-outline-secondary:hover {
+.loading-container {
+  min-height: calc(100vh - 80px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
   background-color: #000000;
-  color: #ffffff;
 }
 
 @media (max-width: 768px) {
+  .reviews-wrapper {
+    padding: 0 0.5rem;
+  }
+
   .profile-info {
     flex-direction: column;
     text-align: center;
@@ -325,4 +352,3 @@ export default {
   }
 }
 </style>
-

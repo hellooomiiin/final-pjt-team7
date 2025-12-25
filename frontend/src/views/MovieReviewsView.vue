@@ -121,91 +121,366 @@ const goCreateReview = async () => {
   router.push({ name: 'review-create', params: { id: movie.value.tmdb_id } })
 }
 
+const goBack = () => {
+  router.push({ name: 'MovieDetail', params: { id: route.params.id } })
+}
+
 onMounted(() => {
   getMovieDetail()
 })
 </script>
 
 <template>
-  <div class="container mt-5" v-if="movie">
-    <div class="d-flex justify-content-between align-items-center mb-4">
-      <h3>{{ movie.title }}의 리뷰 ({{ movie.review_set ? movie.review_set.length : 0 }}개)</h3>
-      
-      <div class="d-flex gap-2">
-        <button v-if="store.isAuthenticated" @click="goCreateReview" class="btn btn-primary">리뷰 작성하기</button>
-        <button @click="router.push({ name: 'MovieDetail', params: { id: route.params.id } })" class="btn btn-secondary">뒤로가기</button>
-      </div>
-    </div>
-    <hr>
+  <div class="reviews-container" v-if="movie">
+    <div class="reviews-wrapper">
+      <!-- 뒤로가기 버튼 -->
+      <button @click="goBack" class="back-button">
+        ← 뒤로가기
+      </button>
 
-    <div class="d-flex justify-content-end mb-3" v-if="movie.review_set && movie.review_set.length > 0">
-      <select v-model="sortBy" class="form-select w-auto">
-        <option value="latest">최신순 (기본)</option>
-        <option value="oldest">오래된 순</option>
-        <option value="highRank">평점 높은 순</option>
-        <option value="lowRank">평점 낮은 순</option>
-        <option value="likes">좋아요 많은 순</option>
-      </select>
-    </div>
-
-    <div v-if="sortedReviews.length > 0">
-      <div 
-        v-for="review in sortedReviews" 
-        :key="review.id" 
-        @click="goDetail(review.id)" 
-        class="card mb-3 hover-effect"
-        style="cursor: pointer;"
-      >
-        <div class="card-body">
-          <div class="d-flex justify-content-between align-items-start">
-            <h5 class="card-title text-truncate mb-0" style="max-width: 80%;">
-              {{ review.title }} 
-            </h5>
-            <span class="badge bg-warning text-dark">★ {{ review.rank }}</span>
-          </div>
-          
-          <h6 class="card-subtitle my-2 text-muted small">
-            작성자: {{ review.user_nickname || review.user }}
-          </h6>
-          
-          <p class="card-text text-truncate">{{ review.content }}</p>
-          
-          <div class="d-flex justify-content-between align-items-center mt-3 border-top pt-2">
-            <small class="text-muted">
-              {{ new Date(review.created_at).toLocaleString() }}
-              <span v-if="isEdited(review.created_at, review.updated_at)" class="ms-1 text-secondary fw-bold">
-                (수정됨)
-              </span>
-            </small>
-            
-            <div class="d-flex gap-3 text-secondary small">
-              <span class="d-flex align-items-center gap-1">
-                ❤ {{ review.like_count || 0 }}
-              </span>
-              <span class="d-flex align-items-center gap-1">
-                💬 {{ review.comments ? review.comments.length : 0 }}
-              </span>
-          </div>
-        </div>
-
+      <!-- 헤더 -->
+      <div class="reviews-header">
+        <h3 class="reviews-title">{{ movie.title }}의 리뷰 ({{ movie.review_set ? movie.review_set.length : 0 }}개)</h3>
+        
+        <div class="header-actions">
+          <button v-if="store.isAuthenticated" @click="goCreateReview" class="btn-review-create">리뷰 작성하기</button>
         </div>
       </div>
-    </div>
 
-    <div v-else class="text-center py-5">
-      <p class="text-muted">아직 작성된 리뷰가 없습니다.</p>
-      <p>첫 번째 리뷰의 주인공이 되어보세요!</p>
-    </div>
+      <!-- 정렬 선택 -->
+      <div class="sort-section" v-if="movie.review_set && movie.review_set.length > 0">
+        <select v-model="sortBy" class="sort-select">
+          <option value="latest">최신순 (기본)</option>
+          <option value="oldest">오래된 순</option>
+          <option value="highRank">평점 높은 순</option>
+          <option value="lowRank">평점 낮은 순</option>
+          <option value="likes">좋아요 많은 순</option>
+        </select>
+      </div>
 
+      <!-- 리뷰 목록 -->
+      <div v-if="sortedReviews.length > 0" class="reviews-list">
+        <div 
+          v-for="review in sortedReviews" 
+          :key="review.id" 
+          @click="goDetail(review.id)" 
+          class="review-card"
+        >
+          <div class="review-card-header">
+            <div class="review-user-info">
+              <div class="review-user-details">
+                <div class="review-username">{{ review.user_nickname || review.user }}</div>
+                <div class="review-date">
+                  {{ new Date(review.created_at).toLocaleString() }}
+                  <span v-if="isEdited(review.created_at, review.updated_at)" class="edited-badge">
+                    (수정됨)
+                  </span>
+                </div>
+              </div>
+            </div>
+            <div class="review-rating-badge">
+              ★ {{ review.rank }}
+            </div>
+          </div>
+
+          <div class="card-divider"></div>
+
+          <div class="review-card-content">
+            <h5 class="review-card-title">{{ review.title }}</h5>
+            <p class="review-card-text">{{ review.content }}</p>
+          </div>
+
+          <div class="card-divider"></div>
+
+          <div class="review-card-footer">
+            <div class="review-stats">
+              <span class="review-like-count">❤ {{ review.like_count || 0 }}</span>
+              <span class="review-comment-count">💬 {{ review.comments ? review.comments.length : 0 }}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div v-else class="no-reviews">
+        <p>아직 작성된 리뷰가 없습니다.</p>
+        <p>첫 번째 리뷰의 주인공이 되어보세요!</p>
+      </div>
+    </div>
   </div>
-  <div v-else class="text-center mt-5">
-    <p>로딩중...</p>
+  <div v-else class="loading-container">
+    <div class="spinner-border text-light" role="status"></div>
   </div>
 </template>
 
 <style scoped>
-.hover-effect:hover {
-  background-color: #f8f9fa;
-  transition: 0.3s;
+.reviews-container {
+  min-height: calc(100vh - 80px);
+  background-color: #000000;
+  color: #ffffff;
+  padding: 2rem 0;
+}
+
+.reviews-wrapper {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 0 1rem;
+  position: relative;
+}
+
+/* 뒤로가기 버튼 */
+.back-button {
+  background: none;
+  border: none !important;
+  outline: none !important;
+  box-shadow: none !important;
+  color: #999999;
+  font-size: 0.9rem;
+  cursor: pointer;
+  padding: 0.5rem 0;
+  margin-bottom: 1.5rem;
+  transition: color 0.2s;
+}
+
+.back-button:hover {
+  color: #ffffff;
+  border: none !important;
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+.back-button:focus {
+  border: none !important;
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+.back-button:active {
+  border: none !important;
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+/* 헤더 */
+.reviews-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2rem;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.reviews-title {
+  font-size: 1.5rem;
+  font-weight: bold;
+  color: #ffffff;
+  margin: 0;
+}
+
+.header-actions {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.btn-review-create {
+  padding: 0.5rem 1.5rem;
+  background-color: transparent;
+  color: #999999;
+  border: none !important;
+  outline: none !important;
+  box-shadow: none !important;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  transition: all 0.3s ease;
+}
+
+.btn-review-create:hover {
+  color: #cccccc;
+  border: none !important;
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+.btn-review-create:focus {
+  border: none !important;
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+.btn-review-create:active {
+  border: none !important;
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+/* 정렬 섹션 */
+.sort-section {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 1.5rem;
+}
+
+.sort-select {
+  padding: 0.5rem 1rem;
+  background-color: #1a1a1a;
+  color: #ffffff;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+
+.sort-select:focus {
+  outline: none;
+  border-color: rgba(255, 255, 255, 0.3);
+}
+
+/* 리뷰 목록 */
+.reviews-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+/* 리뷰 카드 */
+.review-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  padding: 22px;
+  background-color: #1a1a1a;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.review-card:hover {
+  background-color: #252525;
+}
+
+.review-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0;
+}
+
+.review-user-info {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.review-user-details {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.review-username {
+  font-size: 1rem;
+  font-weight: 500;
+  color: #ffffff;
+}
+
+.review-date {
+  font-size: 0.875rem;
+  color: #999999;
+}
+
+.edited-badge {
+  color: #999999;
+  font-weight: 500;
+  margin-left: 0.25rem;
+}
+
+.review-rating-badge {
+  font-size: 1rem;
+  color: #ffc107;
+  font-weight: 500;
+}
+
+.card-divider {
+  height: 1px;
+  background-color: rgba(255, 255, 255, 0.1);
+  margin: 1rem 0;
+}
+
+.review-card-content {
+  margin-bottom: 0;
+}
+
+.review-card-title {
+  font-size: 1.2rem;
+  font-weight: bold;
+  color: #ffffff;
+  margin-bottom: 0.75rem;
+}
+
+.review-card-text {
+  font-size: 0.95rem;
+  color: #cccccc;
+  line-height: 1.6;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  margin-bottom: 0;
+}
+
+.review-card-footer {
+  margin-top: 0;
+}
+
+.review-stats {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+  font-size: 0.9rem;
+}
+
+.review-like-count {
+  color: #ffffff;
+}
+
+.review-comment-count {
+  color: #999999;
+}
+
+.no-reviews {
+  text-align: center;
+  padding: 3rem 0;
+  color: #999999;
+}
+
+.loading-container {
+  min-height: calc(100vh - 80px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #000000;
+}
+
+/* 반응형 */
+@media (max-width: 768px) {
+  .reviews-wrapper {
+    padding: 0 0.5rem;
+  }
+
+  .reviews-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .header-actions {
+    width: 100%;
+    flex-direction: column;
+  }
+
+  .btn-review-create {
+    width: 100%;
+  }
 }
 </style>

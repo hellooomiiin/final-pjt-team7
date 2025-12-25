@@ -1,32 +1,18 @@
 ﻿<template>
-  <div class="profile-dibs-container">
-    <div class="container">
-      <div class="d-flex justify-content-between align-items-center mb-4">
-        <button @click="$router.push('/profile')" class="btn btn-outline-secondary">
-          ← 뒤로가기
-        </button>
-        <h2 class="page-title">내가 찜한 영화 ({{ dibsList.length }})</h2>
-        <div style="width: 100px;"></div> </div>
+  <div class="reviews-container" v-if="!loading && !error">
+    <div class="reviews-wrapper">
+      <!-- 뒤로가기 버튼 -->
+      <button @click="$router.push('/profile')" class="back-button">
+        ← 뒤로가기
+      </button>
 
-      <div v-if="loading" class="text-center loading-spinner">
-        <div class="spinner-border text-danger" role="status">
-          <span class="visually-hidden">Loading...</span>
-        </div>
+      <!-- 헤더 -->
+      <div class="reviews-header">
+        <h3 class="reviews-title">내가 찜한 영화 ({{ dibsList.length }})</h3>
       </div>
 
-      <div v-else-if="error" class="alert alert-danger text-center">
-        {{ error }}
-      </div>
-
-      <div v-else-if="dibsList.length === 0" class="alert alert-info empty-state">
-        <h4>아직 찜한 영화가 없습니다.</h4>
-        <p>마음에 드는 영화를 발견하면 하트(❤️)를 눌러보세요!</p>
-        <button @click="$router.push('/')" class="btn btn-dark mt-3">
-          영화 둘러보러 가기
-        </button>
-      </div>
-
-      <div v-else class="movies-grid">
+      <!-- 영화 목록 -->
+      <div v-if="dibsList.length > 0" class="movies-grid">
         <div 
           v-for="movie in dibsList" 
           :key="movie.tmdb_id" 
@@ -43,16 +29,28 @@
           </div>
           
           <div class="movie-info">
-            <h5 class="movie-title text-truncate">{{ movie.title }}</h5>
-            <div class="d-flex justify-content-between align-items-center mt-2">
+            <h5 class="movie-title">{{ movie.title }}</h5>
+            <div class="movie-details">
               <span class="rating">★ {{ movie.vote_average ? movie.vote_average.toFixed(1) : '0.0' }}</span>
-              <small class="text-muted">{{ movie.release_date ? movie.release_date.split('-')[0] : '' }}</small>
+              <small class="year">{{ movie.release_date ? movie.release_date.split('-')[0] : '' }}</small>
             </div>
           </div>
         </div>
       </div>
 
+      <div v-else class="no-reviews">
+        <p>아직 찜한 영화가 없습니다.</p>
+        <p>마음에 드는 영화를 발견하면 하트(❤️)를 눌러보세요!</p>
+      </div>
     </div>
+  </div>
+  <div v-else-if="loading" class="loading-container">
+    <div class="spinner-border text-light" role="status">
+      <span class="visually-hidden">Loading...</span>
+    </div>
+  </div>
+  <div v-else-if="error" class="loading-container">
+    <p class="text-danger">{{ error }}</p>
   </div>
 </template>
 
@@ -126,63 +124,96 @@ export default {
 </script>
 
 <style scoped>
-.profile-dibs-container {
+.reviews-container {
   min-height: calc(100vh - 80px);
-  padding: 3rem 0;
-  background-color: #fff;
-}
-
-.page-title {
-  font-weight: bold;
-  text-align: center;
-}
-
-.loading-spinner {
-  padding: 5rem 0;
-}
-
-/* --- 버튼 스타일 --- */
-.btn-outline-secondary {
-  border: 1px solid #000000;
-  color: #000000;
-  background-color: #ffffff;
-  padding: 0.5rem 1rem;
-  transition: all 0.2s;
-}
-
-.btn-outline-secondary:hover {
   background-color: #000000;
   color: #ffffff;
+  padding: 2rem 0;
 }
 
-/* --- 영화 그리드 레이아웃 --- */
-.movies-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-  gap: 2rem;
-  padding-top: 1rem;
-}
-
-/* --- 영화 카드 스타일 --- */
-.movie-card {
-  border: 1px solid #000;
-  background-color: #fff;
-  cursor: pointer;
-  transition: transform 0.2s, box-shadow 0.2s;
+.reviews-wrapper {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 0 1rem;
   position: relative;
 }
 
+/* 뒤로가기 버튼 */
+.back-button {
+  background: none;
+  border: none !important;
+  outline: none !important;
+  box-shadow: none !important;
+  color: #999999;
+  font-size: 0.9rem;
+  cursor: pointer;
+  padding: 0.5rem 0;
+  margin-bottom: 1.5rem;
+  transition: color 0.2s;
+}
+
+.back-button:hover {
+  color: #ffffff;
+  border: none !important;
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+.back-button:focus {
+  border: none !important;
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+.back-button:active {
+  border: none !important;
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+/* 헤더 */
+.reviews-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2rem;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.reviews-title {
+  font-size: 1.5rem;
+  font-weight: bold;
+  color: #ffffff;
+  margin: 0;
+}
+
+/* 영화 그리드 */
+.movies-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 1.5rem;
+  padding-top: 1rem;
+}
+
+/* 영화 카드 */
+.movie-card {
+  background-color: #1a1a1a;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+  overflow: hidden;
+}
+
 .movie-card:hover {
-  transform: translateY(-5px);
-  box-shadow: 5px 5px 0px rgba(0,0,0,0.1);
+  background-color: #252525;
 }
 
 .poster-wrapper {
   position: relative;
   width: 100%;
-  aspect-ratio: 2/3; /* 포스터 비율 고정 */
+  aspect-ratio: 2/3;
   overflow: hidden;
-  border-bottom: 1px solid #000;
 }
 
 .movie-poster {
@@ -206,22 +237,52 @@ export default {
 .movie-title {
   font-weight: bold;
   font-size: 1.1rem;
-  margin-bottom: 0;
+  margin-bottom: 0.75rem;
+  color: #ffffff;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.movie-details {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
 }
 
 .rating {
-  color: #ffc107; /* 별점 색상 */
+  color: #ffc107;
   font-weight: bold;
-  text-shadow: 1px 1px 0px #000; /* 가독성 위한 테두리 효과 */
-  -webkit-text-stroke: 0.5px #000;
 }
 
-/* --- 빈 상태 --- */
-.empty-state {
-  background-color: #ffffff;
-  border: 1px solid #000000;
-  color: #000000;
-  padding: 4rem 2rem;
+.year {
+  color: #999999;
+  font-size: 0.9rem;
+}
+
+.no-reviews {
   text-align: center;
+  padding: 3rem 0;
+  color: #999999;
+}
+
+.loading-container {
+  min-height: calc(100vh - 80px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #000000;
+}
+
+/* 반응형 */
+@media (max-width: 768px) {
+  .reviews-wrapper {
+    padding: 0 0.5rem;
+  }
+
+  .movies-grid {
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: 1rem;
+  }
 }
 </style>

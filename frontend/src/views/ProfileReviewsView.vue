@@ -1,72 +1,69 @@
 <template>
-  <div class="profile-reviews-container">
-    <div class="container">
-      <div class="mb-4 d-flex justify-content-between align-items-center">
-        <button @click="$router.push('/profile')" class="btn btn-outline-secondary">
-          ← 뒤로가기
-        </button>
-        <h2 class="mb-0 fw-bold">내 작성 리뷰</h2>
+  <div class="reviews-container" v-if="!isLoading">
+    <div class="reviews-wrapper">
+      <!-- 뒤로가기 버튼 -->
+      <button @click="$router.push('/profile')" class="back-button">
+        ← 뒤로가기
+      </button>
+
+      <!-- 헤더 -->
+      <div class="reviews-header">
+        <h3 class="reviews-title">내 작성 리뷰</h3>
       </div>
 
-      <div v-if="isLoading" class="text-center py-5">
-        <div class="spinner-border text-primary" role="status">
-          <span class="visually-hidden">로딩 중...</span>
-        </div>
-        <p class="mt-2 text-muted">리뷰를 불러오고 있습니다.</p>
-      </div>
-
-      <div v-else-if="myReviews && myReviews.length > 0">
-        <div v-for="review in myReviews" :key="review.id" class="card mb-4 shadow-sm border-0 overflow-hidden review-card">
-          <div class="row g-0">
-            <div class="col-3 col-md-2">
-              <img 
-                :src="review.movie_poster ? `https://image.tmdb.org/t/p/w200${review.movie_poster}` : '/assets/no-poster.png'" 
-                class="img-fluid h-100 poster-img" 
-                alt="movie poster"
-                style="object-fit: cover; min-height: 160px;"
-              >
-            </div>
-            
-            <div class="col-9 col-md-10">
-              <div class="card-body p-3 p-md-4 d-flex flex-column h-100">
-                <div class="d-flex justify-content-between align-items-start mb-2">
-                  <div>
-                    <p class="movie-title-label text-primary fw-bold mb-1">
-                      {{ review.movie_title }}
-                    </p>
-                    <h5 class="card-title fw-bold mb-0 text-truncate">
-                      {{ review.title }}
-                    </h5>
-                  </div>
-                    <StarDisplay :rating="review.rank" />
-                </div>
-                
-                <p class="card-text text-muted mb-3 flex-grow-1 text-break review-content-preview">
-                  {{ review.content }}
-                </p>
-                
-                <div class="d-flex justify-content-between align-items-center mt-auto pt-2 border-top">
-                  <div class="d-flex gap-3 text-secondary small">
-                    <span>❤️ {{ review.like_count || 0 }}</span>
-                    <span>💬 {{ review.comments ? review.comments.length : 0 }}</span>
-                    <span class="d-none d-sm-inline">| {{ new Date(review.created_at).toLocaleDateString() }}</span>
-                  </div>
-                  <router-link 
-                    :to="{ name: 'review-detail', params: { id: review.movie, reviewId: review.id } }" 
-                    class="btn btn-sm btn-dark px-3"
-                  >
-                    상세보기
-                  </router-link>
+      <!-- 리뷰 목록 -->
+      <div v-if="myReviews && myReviews.length > 0" class="reviews-list">
+        <div 
+          v-for="review in myReviews" 
+          :key="review.id" 
+          @click="$router.push({ name: 'review-detail', params: { id: review.movie, reviewId: review.id }, query: { from: 'profile' } })"
+          class="review-card"
+        >
+          <div class="review-card-header">
+            <div class="review-user-info">
+              <div class="review-user-avatar">
+                <div class="avatar-placeholder"></div>
+              </div>
+              <div class="review-user-details">
+                <div class="review-username">{{ review.user_nickname || review.user }}</div>
+                <div class="review-date">
+                  {{ new Date(review.created_at).toLocaleString() }}
                 </div>
               </div>
+            </div>
+            <div class="review-rating-badge">
+              ★ {{ review.rank }}
+            </div>
+          </div>
+
+          <div class="card-divider"></div>
+
+          <div class="review-card-content">
+            <div class="movie-title-label">{{ review.movie_title }}</div>
+            <h5 class="review-card-title">{{ review.title }}</h5>
+            <p class="review-card-text">{{ review.content }}</p>
+          </div>
+
+          <div class="card-divider"></div>
+
+          <div class="review-card-footer">
+            <div class="review-stats">
+              <span class="review-like-count">❤ {{ review.like_count || 0 }}</span>
+              <span class="review-comment-count">💬 {{ review.comments ? review.comments.length : 0 }}</span>
             </div>
           </div>
         </div>
       </div>
 
-      <div v-else class="empty-state text-center py-5 border rounded bg-light">
-        <p class="text-muted mb-0">아직 작성한 리뷰가 없습니다. 영화에 대한 첫 리뷰를 남겨보세요!</p>
+      <div v-else class="no-reviews">
+        <p>아직 작성한 리뷰가 없습니다.</p>
+        <p>영화에 대한 첫 리뷰를 남겨보세요!</p>
       </div>
+    </div>
+  </div>
+  <div v-else class="loading-container">
+    <div class="spinner-border text-light" role="status">
+      <span class="visually-hidden">로딩 중...</span>
     </div>
   </div>
 </template>
@@ -110,50 +107,220 @@ onMounted(() => {
 </script>
 
 <style scoped>
-.profile-reviews-container {
+.reviews-container {
   min-height: calc(100vh - 80px);
+  background-color: #000000;
+  color: #ffffff;
   padding: 2rem 0;
-  background-color: #f8f9fa;
 }
 
+.reviews-wrapper {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 0 1rem;
+  position: relative;
+}
+
+/* 뒤로가기 버튼 */
+.back-button {
+  background: none;
+  border: none !important;
+  outline: none !important;
+  box-shadow: none !important;
+  color: #999999;
+  font-size: 0.9rem;
+  cursor: pointer;
+  padding: 0.5rem 0;
+  margin-bottom: 1.5rem;
+  transition: color 0.2s;
+}
+
+.back-button:hover {
+  color: #ffffff;
+  border: none !important;
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+.back-button:focus {
+  border: none !important;
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+.back-button:active {
+  border: none !important;
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+/* 헤더 */
+.reviews-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2rem;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.reviews-title {
+  font-size: 1.5rem;
+  font-weight: bold;
+  color: #ffffff;
+  margin: 0;
+}
+
+/* 리뷰 목록 */
+.reviews-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+/* 리뷰 카드 */
 .review-card {
-  transition: transform 0.2s ease-in-out;
-  border-radius: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  padding: 22px;
+  background-color: #1a1a1a;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background-color 0.2s;
 }
 
 .review-card:hover {
-  transform: translateY(-5px);
-  box-shadow: 0 10px 20px rgba(0,0,0,0.08) !important;
+  background-color: #252525;
+}
+
+.review-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0;
+}
+
+.review-user-info {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.review-user-avatar {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.avatar-placeholder {
+  width: 100%;
+  height: 100%;
+  background-color: #333333;
+  border-radius: 50%;
+}
+
+.review-user-details {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.review-username {
+  font-size: 1rem;
+  font-weight: 500;
+  color: #ffffff;
+}
+
+.review-date {
+  font-size: 0.875rem;
+  color: #999999;
+}
+
+.review-rating-badge {
+  font-size: 1rem;
+  color: #ffc107;
+  font-weight: 500;
+}
+
+.card-divider {
+  height: 1px;
+  background-color: rgba(255, 255, 255, 0.1);
+  margin: 1rem 0;
+}
+
+.review-card-content {
+  margin-bottom: 0;
 }
 
 .movie-title-label {
   font-size: 0.85rem;
+  color: #999999;
+  margin-bottom: 0.5rem;
 }
 
-.review-content-preview {
+.review-card-title {
+  font-size: 1.2rem;
+  font-weight: bold;
+  color: #ffffff;
+  margin-bottom: 0.75rem;
+}
+
+.review-card-text {
+  font-size: 0.95rem;
+  color: #cccccc;
+  line-height: 1.6;
   display: -webkit-box;
-  -webkit-line-clamp: 2; /* 2줄까지만 보여주고 말줄임표 */
+  -webkit-line-clamp: 3;
   -webkit-box-orient: vertical;
   overflow: hidden;
-  font-size: 0.95rem;
+  margin-bottom: 0;
 }
 
-.poster-img {
-  transition: opacity 0.3s;
+.review-card-footer {
+  margin-top: 0;
 }
 
-.card:hover .poster-img {
-  opacity: 0.9;
+.review-stats {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+  font-size: 0.9rem;
 }
 
-.btn-outline-secondary {
-  border: 1px solid #000000;
-  color: #000000;
-  background-color: #ffffff;
-}
-
-.btn-outline-secondary:hover {
-  background-color: #000000;
+.review-like-count {
   color: #ffffff;
+}
+
+.review-comment-count {
+  color: #999999;
+}
+
+.no-reviews {
+  text-align: center;
+  padding: 3rem 0;
+  color: #999999;
+}
+
+.loading-container {
+  min-height: calc(100vh - 80px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #000000;
+}
+
+/* 반응형 */
+@media (max-width: 768px) {
+  .reviews-wrapper {
+    padding: 0 0.5rem;
+  }
+
+  .reviews-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
 }
 </style>
