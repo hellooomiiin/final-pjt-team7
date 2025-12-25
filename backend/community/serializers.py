@@ -21,6 +21,7 @@ class ReviewSerializer(serializers.ModelSerializer):
     
     movie_title = serializers.CharField(source='movie.title', read_only=True)
     movie_poster = serializers.CharField(source='movie.poster_path', read_only=True)
+    movie_tmdb_id = serializers.IntegerField(source='movie.tmdb_id', read_only=True)
 
     class Meta:
         model = Review
