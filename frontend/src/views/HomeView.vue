@@ -47,7 +47,8 @@
         >
           <div class="carousel-overlay"></div>
           <div class="carousel-content">
-            <p class="carousel-subtitle">지금 바로 나만의 맞춤 영화를 만나보세요</p>
+            <p class="carousel-subtitle carousel-subtitle-top">AI가 당신의 기분을 분석하여 완벽한 영화를 추천해드립니다</p>
+            <p class="carousel-subtitle carousel-subtitle-bottom">지금 바로 나만의 맞춤 영화를 만나보세요</p>
             <button @click.stop="showMoodModal = true" class="btn-mood-select">
               감정 다시 선택하기
             </button>
@@ -76,6 +77,19 @@
         <button @click="showMoodModal = true" class="btn-mood-select">
           감정 다시 선택하기
         </button>
+      </div>
+    </div>
+
+    <!-- 검색 섹션 -->
+    <div class="search-section">
+      <div class="search-container">
+        <input
+          v-model="keyword"
+          @keyup.enter="onSearch"
+          type="text"
+          class="search-input"
+          placeholder="영화 제목을 검색하세요..."
+        />
       </div>
     </div>
 
@@ -428,12 +442,12 @@ export default {
   z-index: 2;
   display: flex;
   flex-direction: column;
-  justify-content: center;
+  justify-content: flex-end;
   align-items: center;
   height: 100%;
   text-align: center;
-  padding: 4rem 2rem;
-  max-width: 800px;
+  padding: 4rem 2rem 6rem;
+  max-width: 1200px;
   margin: 0 auto;
 }
 
@@ -453,6 +467,17 @@ export default {
   font-weight: 800;
   font-family: 'Suit', sans-serif;
   text-shadow: 1px 1px 4px rgba(0, 0, 0, 0.8);
+  white-space: nowrap;
+}
+
+.carousel-subtitle-top {
+  margin-bottom: 0.5rem;
+}
+
+.carousel-subtitle-bottom {
+  font-size: 1.84548rem; /* 2.6364rem * 0.7 = 30% 감소 */
+  font-weight: 500; /* 더 얇게 */
+  margin-bottom: 2.5rem;
 }
 
 /* Carousel Indicators - Bootstrap 기본 스타일 */
@@ -1016,24 +1041,65 @@ export default {
   }
 }
 
-/* [추가] 검색창 스타일 */
+/* 검색 섹션 스타일 */
 .search-section {
+  padding: 2rem 2rem 1rem;
+  max-width: 1330px;
+  margin: 0 auto;
+}
+
+.search-container {
   max-width: 600px;
   margin: 0 auto;
 }
-.search-form {
-  display: flex;
-  gap: 10px;
-}
+
 .search-input {
-  border-radius: 50px;
+  width: 100%;
   padding: 1rem 1.5rem;
-  border: 2px solid #000;
+  font-size: 1rem;
+  background-color: #1a1a1a;
+  color: #ffffff;
+  border: 2px solid #333333;
+  border-radius: 50px;
+  outline: none;
+  transition: all 0.3s ease;
+  font-family: 'Suit', sans-serif;
 }
-.search-btn {
-  border-radius: 5px;
-  padding: 0 0.2rem;
-  font-weight: bold;
-	width: 5rem;
+
+.search-input::placeholder {
+  color: #808080;
+}
+
+.search-input:focus {
+  border-color: #E50914;
+  background-color: #2a2a2a;
+  box-shadow: 0 0 0 3px rgba(229, 9, 20, 0.1);
+}
+
+.search-input:hover {
+  border-color: #555555;
+}
+
+/* 반응형 */
+@media (max-width: 768px) {
+  .search-section {
+    padding: 1.5rem 1rem 1rem;
+  }
+
+  .search-input {
+    padding: 0.875rem 1.25rem;
+    font-size: 0.9rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .search-section {
+    padding: 1rem 0.5rem 0.5rem;
+  }
+
+  .search-input {
+    padding: 0.75rem 1rem;
+    font-size: 0.875rem;
+  }
 }
 </style>
