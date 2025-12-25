@@ -1,35 +1,20 @@
 <template>
-  <div class="profile-emotions-container">
-    <div class="container">
-      <div class="d-flex justify-content-between align-items-center mb-4">
-        <button @click="$router.push('/profile')" class="btn btn-outline-secondary">
-          ← 뒤로가기
-        </button>
-        <h2 class="page-title">나의 무드 & 영화 기록</h2>
-        <div style="width: 100px;"></div> </div>
+  <div class="reviews-container" v-if="!loading && !error">
+    <div class="reviews-wrapper">
+      <!-- 뒤로가기 버튼 -->
+      <button @click="$router.push('/profile')" class="back-button">
+        ← 뒤로가기
+      </button>
 
-      <div v-if="loading" class="text-center loading-spinner">
-        <div class="spinner-border text-danger" role="status">
-          <span class="visually-hidden">Loading...</span>
-        </div>
+      <!-- 헤더 -->
+      <div class="reviews-header">
+        <h3 class="reviews-title">나의 무드 & 영화 기록</h3>
       </div>
 
-      <div v-else-if="error" class="alert alert-danger text-center">
-        {{ error }}
-      </div>
-
-      <div v-else-if="historyList.length === 0" class="alert alert-info empty-state">
-        <h4>아직 기록이 없습니다.</h4>
-        <p>오늘의 기분에 맞춰 첫 번째 영화 추천을 받아보세요!</p>
-        <button @click="$router.push('/')" class="btn btn-dark mt-3">
-          영화 추천 받으러 가기
-        </button>
-      </div>
-
-      <div v-else class="history-list">
-        <div v-for="record in historyList" :key="record.id" class="history-card mb-5">
-          
-          <div class="history-header d-flex justify-content-between align-items-center mb-3">
+      <!-- 기록 목록 -->
+      <div v-if="historyList.length > 0" class="history-list">
+        <div v-for="record in historyList" :key="record.id" class="history-card">
+          <div class="history-header">
             <div class="date-badge">
               {{ formatDate(record.created_at) }}
             </div>
@@ -37,6 +22,8 @@
               {{ getMoodLabel(record.mood) }}
             </div>
           </div>
+
+          <div class="card-divider"></div>
 
           <div class="movies-row">
             <div 
@@ -50,13 +37,25 @@
                 :alt="movie.title" 
                 class="movie-poster"
               />
-              <p class="movie-title text-truncate">{{ movie.title }}</p>
+              <p class="movie-title">{{ movie.title }}</p>
             </div>
           </div>
         </div>
       </div>
 
+      <div v-else class="no-reviews">
+        <p>아직 기록이 없습니다.</p>
+        <p>오늘의 기분에 맞춰 첫 번째 영화 추천을 받아보세요!</p>
+      </div>
     </div>
+  </div>
+  <div v-else-if="loading" class="loading-container">
+    <div class="spinner-border text-light" role="status">
+      <span class="visually-hidden">Loading...</span>
+    </div>
+  </div>
+  <div v-else-if="error" class="loading-container">
+    <p class="text-danger">{{ error }}</p>
   </div>
 </template>
 
@@ -64,7 +63,7 @@
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import axios from 'axios'
-import { useAuthStore } from '@/stores/auth' // Auth 스토어 import
+import { useAuthStore } from '@/stores/auth'
 
 export default {
   name: 'ProfileEmotionsView',
@@ -120,7 +119,7 @@ export default {
         'bored': '🥱 심심함',
         'angry': '😡 화남',
         'sad': '😢 슬픔',
-        'happy': '😊 행복', // 혹시 추가될 경우 대비
+        'happy': '😊 행복',
         'stressed': '🤯 스트레스'
       }
       return labels[mood] || mood
@@ -128,7 +127,7 @@ export default {
 
     const getImageUrl = (path) => {
       if (!path) return '/assets/no-poster.jpg'
-      return `https://image.tmdb.org/t/p/w200${path}` // 작은 사이즈(w200) 사용
+      return `https://image.tmdb.org/t/p/w200${path}`
     }
 
     const goToDetail = (id) => {
@@ -153,69 +152,144 @@ export default {
 </script>
 
 <style scoped>
-.profile-emotions-container {
+.reviews-container {
   min-height: calc(100vh - 80px);
-  padding: 3rem 0;
-  background-color: #fff;
-}
-
-.page-title {
-  font-weight: bold;
-  text-align: center;
-}
-
-.loading-spinner {
-  padding: 5rem 0;
-}
-
-/* --- 버튼 스타일 --- */
-.btn-outline-secondary {
-  border: 1px solid #000000;
-  color: #000000;
-  background-color: #ffffff;
-  padding: 0.5rem 1rem;
-  transition: all 0.2s;
-}
-
-.btn-outline-secondary:hover {
   background-color: #000000;
   color: #ffffff;
+  padding: 2rem 0;
 }
 
-/* --- 기록 카드 스타일 --- */
+.reviews-wrapper {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 0 1rem;
+  position: relative;
+}
+
+/* 뒤로가기 버튼 */
+.back-button {
+  background: none;
+  border: none !important;
+  outline: none !important;
+  box-shadow: none !important;
+  color: #999999;
+  font-size: 0.9rem;
+  cursor: pointer;
+  padding: 0.5rem 0;
+  margin-bottom: 1.5rem;
+  transition: color 0.2s;
+}
+
+.back-button:hover {
+  color: #ffffff;
+  border: none !important;
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+.back-button:focus {
+  border: none !important;
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+.back-button:active {
+  border: none !important;
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+/* 헤더 */
+.reviews-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2rem;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.reviews-title {
+  font-size: 1.5rem;
+  font-weight: bold;
+  color: #ffffff;
+  margin: 0;
+}
+
+/* 기록 목록 */
+.history-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+/* 기록 카드 */
 .history-card {
-  border: 1px solid #000;
-  padding: 1.5rem;
-  background-color: #fff;
-  /* box-shadow: 5px 5px 0px rgba(0,0,0,0.1); 약간의 입체감 */
+  padding: 22px;
+  background-color: #1a1a1a;
+  border-radius: 8px;
+  transition: background-color 0.2s;
+}
+
+.history-card:hover {
+  background-color: #252525;
 }
 
 .history-header {
-  border-bottom: 1px solid #eee;
-  padding-bottom: 1rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0;
 }
 
 .date-badge {
   font-size: 0.95rem;
   font-weight: bold;
-  color: #555;
+  color: #ffffff;
 }
 
 .mood-badge {
   font-weight: bold;
-  font-size: 1.1rem;
+  font-size: 1rem;
   padding: 0.3rem 0.8rem;
   border-radius: 20px;
-  border: 1px solid #000;
-  background-color: #fff;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  background-color: #333333;
+  color: #ffffff;
 }
 
-/* 기분별 색상 포인트 (선택사항) */
-.mood-badge.sad { color: #0d6efd; border-color: #0d6efd; }
-.mood-badge.angry { color: #dc3545; border-color: #dc3545; }
-.mood-badge.bored { color: #6c757d; border-color: #6c757d; }
+.mood-badge.sad {
+  color: #0d6efd;
+  border-color: #0d6efd;
+}
 
-/* --- 영화 목록 (가로 배치) --- */
+.mood-badge.angry {
+  color: #dc3545;
+  border-color: #dc3545;
+}
+
+.mood-badge.bored {
+  color: #6c757d;
+  border-color: #6c757d;
+}
+
+.mood-badge.happy {
+  color: #28a745;
+  border-color: #28a745;
+}
+
+.mood-badge.stressed {
+  color: #ffc107;
+  border-color: #ffc107;
+}
+
+.card-divider {
+  height: 1px;
+  background-color: rgba(255, 255, 255, 0.1);
+  margin: 1rem 0;
+}
+
+/* 영화 목록 (가로 배치) */
 .movies-row {
   display: flex;
   gap: 1.5rem;
@@ -227,14 +301,15 @@ export default {
 .movies-row::-webkit-scrollbar {
   height: 6px;
 }
+
 .movies-row::-webkit-scrollbar-thumb {
-  background-color: #ccc;
+  background-color: #666666;
   border-radius: 3px;
 }
 
 .movie-mini-card {
   width: 120px;
-  flex-shrink: 0; /* 줄어들지 않게 고정 */
+  flex-shrink: 0;
   cursor: pointer;
   text-align: center;
   transition: transform 0.2s;
@@ -248,22 +323,43 @@ export default {
   width: 100%;
   height: 180px;
   object-fit: cover;
-  border: 1px solid #ddd;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
   margin-bottom: 0.5rem;
 }
 
 .movie-title {
   font-size: 0.85rem;
   margin: 0;
-  color: #333;
+  color: #ffffff;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-/* --- 빈 상태 --- */
-.empty-state {
-  background-color: #ffffff;
-  border: 1px solid #000000;
-  color: #000000;
-  padding: 4rem 2rem;
+.no-reviews {
   text-align: center;
+  padding: 3rem 0;
+  color: #999999;
+}
+
+.loading-container {
+  min-height: calc(100vh - 80px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #000000;
+}
+
+/* 반응형 */
+@media (max-width: 768px) {
+  .reviews-wrapper {
+    padding: 0 0.5rem;
+  }
+
+  .reviews-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
 }
 </style>

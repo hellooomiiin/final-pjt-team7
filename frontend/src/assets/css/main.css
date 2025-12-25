@@ -1,19 +1,21 @@
+@import url('https://cdn.rawgit.com/moonspam/NanumSquare/master/nanumsquare.css');
+
 * {
   box-sizing: border-box;
 }
 
 body {
   margin: 0;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+  font-family: 'NanumSquare', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
     'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
     sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  background-color: #ffffff;
-  color: #000000;
+  background-color: #000000;
+  color: #ffffff;
 }
 
-/* 버튼 스타일 - 검은 테두리로 통일 */
+/* 버튼 스타일 - 다크 테마에 맞게 수정 */
 button,
 .btn,
 .btn-primary,
@@ -28,9 +30,9 @@ button,
 .btn-link,
 input[type="button"],
 input[type="submit"] {
-  border: 1px solid #000000 !important;
-  background-color: #ffffff;
-  color: #000000;
+  border: 1px solid #ffffff !important;
+  background-color: transparent;
+  color: #ffffff;
 }
 
 button:hover,
@@ -43,41 +45,41 @@ button:hover,
 .btn-outline-danger:hover,
 .btn-outline-warning:hover,
 .btn-success:hover {
-  border: 1px solid #000000 !important;
+  border: 1px solid #ffffff !important;
   background-color: #ffffff;
   color: #000000;
 }
 
-/* 입력 필드 스타일 */
+/* 입력 필드 스타일 - 다크 테마 */
 .form-control,
 input[type="text"],
 input[type="email"],
 input[type="password"],
 textarea,
 select {
-  background-color: #ffffff;
-  border: 1px solid #000000;
-  color: #000000;
+  background-color: #1a1a1a;
+  border: 1px solid #ffffff;
+  color: #ffffff;
 }
 
 .form-control:focus,
 input:focus,
 textarea:focus,
 select:focus {
-  background-color: #ffffff;
-  border: 1px solid #000000;
-  color: #000000;
+  background-color: #1a1a1a;
+  border: 1px solid #ffffff;
+  color: #ffffff;
   outline: none;
 }
 
-/* 링크 스타일 */
+/* 링크 스타일 - 다크 테마 */
 a {
-  color: #000000;
+  color: #ffffff;
   text-decoration: underline;
 }
 
 a:hover {
-  color: #000000;
+  color: #ffffff;
   text-decoration: underline;
 }
 

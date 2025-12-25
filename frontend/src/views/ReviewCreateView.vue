@@ -50,33 +50,196 @@ const createReview = async () => {
     alert('작성 실패! 콘솔(F12)을 확인해주세요.')
   }
 }
+
+const goBack = () => {
+  // route.params.id는 tmdb_id이므로 리뷰 목록 페이지로 이동
+  router.push({ name: 'movie-reviews', params: { id: route.params.id } })
+}
 </script>
 
 <template>
-  <div class="container mt-5">
-    <h2>리뷰 작성</h2>
-    <hr>
-    
-    <form @submit.prevent="createReview">
-      <div class="mb-3">
-        <label class="form-label">제목</label>
-        <input v-model="title" type="text" class="form-control" required>
-      </div>
+  <div class="reviews-container">
+    <div class="reviews-wrapper">
+      <!-- 뒤로가기 버튼 -->
+      <button @click="goBack" class="back-button">
+        ← 뒤로가기
+      </button>
 
-      <div class="mb-3">
-        <label class="fw-bold">평점</label>
-        <StarInput v-model="rank" />
-      </div>
+      <div class="edit-card">
+        <h2 class="edit-title">리뷰 작성</h2>
+        
+        <form @submit.prevent="createReview">
+          <div class="form-group">
+            <label class="form-label">제목</label>
+            <input v-model="title" type="text" class="form-control" required>
+          </div>
 
-      <div class="mb-3">
-        <label class="form-label">내용</label>
-        <textarea v-model="content" class="form-control" rows="5" required></textarea>
-      </div>
+          <div class="form-group">
+            <label class="form-label fw-bold">평점</label>
+            <StarInput v-model="rank" />
+          </div>
 
-      <div class="d-flex gap-2">
-        <button type="submit" class="btn btn-primary">등록완료</button>
-        <button type="button" @click="router.go(-1)" class="btn btn-secondary">취소</button>
+          <div class="form-group">
+            <label class="form-label">내용</label>
+            <textarea v-model="content" class="form-control" rows="5" required></textarea>
+          </div>
+
+          <div class="form-actions">
+            <button type="submit" class="btn-submit">등록완료</button>
+            <button type="button" @click="goBack" class="btn-cancel">취소</button>
+          </div>
+        </form>
       </div>
-    </form>
+    </div>
   </div>
 </template>
+
+<style scoped>
+.reviews-container {
+  min-height: calc(100vh - 80px);
+  background-color: #000000;
+  color: #ffffff;
+  padding: 2rem 0;
+}
+
+.reviews-wrapper {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 0 1rem;
+  position: relative;
+}
+
+/* 뒤로가기 버튼 */
+.back-button {
+  background: none;
+  border: none !important;
+  outline: none !important;
+  box-shadow: none !important;
+  color: #999999;
+  font-size: 0.9rem;
+  cursor: pointer;
+  padding: 0.5rem 0;
+  margin-bottom: 1.5rem;
+  transition: color 0.2s;
+}
+
+.back-button:hover {
+  color: #ffffff;
+  border: none !important;
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+.back-button:focus {
+  border: none !important;
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+.back-button:active {
+  border: none !important;
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+.edit-card {
+  background-color: #1a1a1a;
+  padding: 22px;
+  border-radius: 8px;
+}
+
+.edit-title {
+  color: #ffffff;
+  font-size: 1.5rem;
+  font-weight: bold;
+  margin-bottom: 2rem;
+}
+
+.form-group {
+  margin-bottom: 1.5rem;
+}
+
+.form-label {
+  color: #ffffff;
+  font-weight: 500;
+  margin-bottom: 0.5rem;
+  display: block;
+}
+
+.form-control {
+  width: 100%;
+  padding: 0.75rem;
+  background-color: #333333;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #ffffff;
+  border-radius: 4px;
+  font-size: 1rem;
+}
+
+.form-control:focus {
+  background-color: #333333;
+  border-color: rgba(255, 255, 255, 0.3);
+  color: #ffffff;
+  outline: none;
+  box-shadow: 0 0 0 0.2rem rgba(255, 255, 255, 0.1);
+}
+
+.form-control::placeholder {
+  color: #666666;
+}
+
+textarea.form-control {
+  resize: vertical;
+  min-height: 120px;
+}
+
+.form-actions {
+  display: flex;
+  gap: 1rem;
+  margin-top: 2rem;
+}
+
+.btn-submit,
+.btn-cancel {
+  flex: 1;
+  padding: 0.75rem;
+  border: none;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: bold;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.btn-submit {
+  background-color: #1a1a1a;
+  color: #ffffff;
+}
+
+.btn-submit:hover {
+  background-color: #252525;
+}
+
+.btn-cancel {
+  background-color: #333333;
+  color: #ffffff;
+}
+
+.btn-cancel:hover {
+  background-color: #444444;
+}
+
+@media (max-width: 768px) {
+  .reviews-wrapper {
+    padding: 0 0.5rem;
+  }
+
+  .edit-card {
+    padding: 1.5rem;
+  }
+
+  .form-actions {
+    flex-direction: column;
+  }
+}
+</style>

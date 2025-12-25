@@ -1,92 +1,146 @@
 <template>
   <div class="movie-detail-container">
-    <div class="container">
-      <div v-if="loading" class="text-center loading-spinner">
-        <div class="spinner-border text-danger" role="status">
-          <span class="visually-hidden">Loading...</span>
+    <div v-if="loading" class="loading-spinner">
+      <div class="spinner-border text-light" role="status">
+        <span class="visually-hidden">Loading...</span>
+      </div>
+    </div>
+
+    <div v-else-if="movie" class="movie-detail">
+      <!-- 히어로 섹션 -->
+      <div 
+        class="hero-section"
+        :style="{ backgroundImage: `url(${getBackdropUrl(movie.poster_path)})` }"
+      >
+        <div class="hero-overlay"></div>
+        <div class="hero-content">
+          <h1 class="hero-title">{{ movie.title }}</h1>
+          <p v-if="movie.original_title && movie.original_title !== movie.title" class="hero-subtitle">
+            {{ movie.original_title }}
+          </p>
+          <div class="hero-meta">
+            <span v-if="movie.release_date" class="meta-year">{{ getYear(movie.release_date) }}</span>
+            <span class="meta-separator">·</span>
+            <span v-if="movie.genres && movie.genres.length" class="meta-genres">
+              {{ movie.genres.map(g => g.name).join('/') }}
+            </span>
+          </div>
+          <div class="hero-details">
+            <span v-if="movie.runtime" class="detail-item">
+              {{ formatRuntime(movie.runtime) }}
+            </span>
+            <span class="detail-separator">·</span>
+            <span class="detail-rating">{{ getRatingText(movie.vote_average) }}</span>
+          </div>
         </div>
       </div>
 
-      <div v-else-if="movie" class="movie-detail">
-        <div class="row">
-          <div class="col-md-4">
+      <!-- 메인 콘텐츠 -->
+      <div class="main-content-wrapper">
+        <div class="poster-synopsis-layout">
+          <!-- 포스터 -->
+          <div class="poster-container">
             <img
               :src="getImageUrl(movie.poster_path, 'poster')"
-              class="movie-poster-large"
+              class="movie-poster"
               :alt="movie.title"
             />
           </div>
-          
-          <div class="col-md-8">
-            <div class="d-flex align-items-center gap-3 mb-2">
-              <h1 class="movie-title mb-0">{{ movie.title }}</h1>
-              
-              <button 
-                @click="toggleLike" 
-                class="btn-like" 
-                :class="{ 'liked': isLiked }"
-                title="찜하기"
-              >
-                <span v-if="isLiked" class="heart-icon">❤️</span>
-                <span v-else class="heart-icon">🤍</span>
-                <span class="like-count" v-if="likeCount > 0">{{ likeCount }}</span>
+          <!-- 줄거리 및 평점/찜하기 -->
+          <div class="synopsis-section">
+            <!-- TMDB 별점, 평균 별점, 찜하기 버튼 -->
+            <div class="rating-action-section">
+              <div class="rating-info">
+                <div class="rating-value">★ {{ movie.vote_average ? movie.vote_average.toFixed(1) : '0.0' }}</div>
+                <div class="rating-label">
+                  TMDB 평점<span v-if="movie.vote_count">({{ formatVoteCount(movie.vote_count) }})</span>
+                </div>
+              </div>
+              <div class="action-buttons-group">
+              <button @click="toggleLike" class="action-btn" :class="{ 'active': isLiked }">
+                <span v-if="!isLiked" class="action-icon">+</span>
+                <span v-else class="action-icon">✔</span>
+                <span class="action-text">{{ isLiked ? '찜완료' : '찜하기' }}</span>
               </button>
+                <button @click="scrollToReviews" class="action-btn">
+                  <span class="action-text">후기 보기</span>
+                </button>
+                <button v-if="trailerVideoId" @click="scrollToTrailer" class="action-btn">
+                  <span class="action-text">예고편 보기</span>
+                </button>
+              </div>
+            </div>
+            <!-- 줄거리 -->
+            <h2 class="synopsis-title">줄거리</h2>
+            <p v-if="movie.overview" class="synopsis-text">{{ movie.overview }}</p>
+            <p v-else class="synopsis-text">줄거리 정보가 없습니다.</p>
+          </div>
+        </div>
+
+        <!-- 출연/제작 정보 -->
+        <div class="cast-crew-section">
+          <h3 class="section-title">출연/제작</h3>
+          <div v-if="castPages.length > 0" id="castCarousel" class="carousel slide" data-bs-ride="false" data-bs-interval="false">
+            <!-- Carousel Indicators -->
+            <div v-if="castPages.length > 1" class="carousel-indicators">
+              <button
+                v-for="(page, index) in castPages"
+                :key="index"
+                type="button"
+                data-bs-target="#castCarousel"
+                :data-bs-slide-to="index"
+                :class="{ active: index === 0 }"
+                :aria-current="index === 0 ? 'true' : undefined"
+                :aria-label="`Slide ${index + 1}`"
+              ></button>
             </div>
 
-            <p v-if="movie.original_title" class="movie-original-title">
-              {{ movie.original_title }}
-            </p>
-            
-            <div class="movie-info">
-              <p v-if="movie.overview" class="movie-overview">{{ movie.overview }}</p>
-              
-              <div class="movie-meta">
-                <span v-if="movie.release_date" class="meta-item">
-                  개봉일: {{ movie.release_date }}
-                </span>
-                <span v-if="movie.runtime" class="meta-item">
-                  상영시간: {{ movie.runtime }}분
-                </span>
-                <span v-if="movie.vote_average" class="meta-item">
-                  평점: {{ movie.vote_average.toFixed(1) }}/10
-                </span>
-                <span v-if="movie.popularity" class="meta-item">
-                  인기도: {{ movie.popularity.toFixed(0) }}
-                </span>
-              </div>
-
-              <div class="people-info mt-4">
-                <div v-if="movie.director" class="mb-3">
-                  <strong>감독:</strong> <span class="director-name">{{ movie.director }}</span>
-                </div>
-
-                <div v-if="movie.actors && movie.actors.length" class="actors-list">
-                  <strong>출연:</strong>
-                  <div class="d-flex flex-wrap gap-3 mt-2">
-                    <div v-for="actor in movie.actors" :key="actor.name" class="actor-card text-center">
-                      <img 
-                        :src="getImageUrl(actor.profile_path, 'actor')" 
-                        class="actor-img" 
-                        alt="actor"
-                      >
-                      <div class="actor-name small mt-1">{{ actor.name }}</div>
-                      <div class="actor-char x-small text-muted">{{ actor.character }}</div>
+            <!-- Carousel Items -->
+            <div class="carousel-inner">
+              <div
+                v-for="(page, pageIndex) in castPages"
+                :key="pageIndex"
+                class="carousel-item"
+                :class="{ active: pageIndex === 0 }"
+              >
+                <div class="cast-grid">
+                  <div
+                    v-for="(person, index) in page"
+                    :key="person.key || index"
+                    class="cast-item"
+                  >
+                    <div class="cast-avatar">
+                      <img
+                        v-if="person.profile_path"
+                        :src="getImageUrl(person.profile_path, 'actor')"
+                        :alt="person.name"
+                      />
+                      <img
+                        v-else
+                        :src="noImgPeople"
+                        :alt="person.name"
+                        class="cast-no-image"
+                      />
+                    </div>
+                    <div class="cast-info">
+                      <div class="cast-name">{{ person.name }}</div>
+                      <div class="cast-role">{{ person.role }}</div>
+                      <div v-if="person.character" class="cast-character">{{ person.character }}</div>
                     </div>
                   </div>
                 </div>
               </div>
-
-              <div v-if="movie.genres && movie.genres.length" class="mt-3">
-                <span v-for="genre in movie.genres" :key="genre.tmdb_id" class="badge bg-secondary me-1">
-                  {{ genre.name }}
-                </span>
-              </div>
             </div>
+
+            <!-- Carousel Controls -->
+            <button v-if="castPages.length > 1" class="carousel-control-prev" type="button" data-bs-target="#castCarousel" data-bs-slide="prev"></button>
+            <button v-if="castPages.length > 1" class="carousel-control-next" type="button" data-bs-target="#castCarousel" data-bs-slide="next"></button>
           </div>
         </div>
 
-        <div v-if="trailerVideoId" class="trailer-section mt-5">
-          <h3 class="section-title mb-3">예고편</h3>
+        <!-- 예고편 섹션 -->
+        <div v-if="trailerVideoId" id="trailer-section" class="trailer-section">
+          <h3 class="section-title">예고편</h3>
           <div class="video-container">
             <iframe
               :src="`https://www.youtube.com/embed/${trailerVideoId}`"
@@ -98,68 +152,59 @@
           </div>
         </div>
 
-        <div class="reviews-section mt-5 pt-4 border-top">
-          <div class="d-flex justify-content-between align-items-center mb-4">
-            <h3 class="section-title mb-0">리뷰 ({{ movie.review_set ? movie.review_set.length : 0 }})</h3>
-            <div class="d-flex gap-2 align-items-center">
+        <!-- 리뷰 섹션 -->
+        <div id="reviews-section" class="reviews-section">
+          <div class="reviews-header">
+            <h3 class="section-title">리뷰 ({{ movie.review_set ? movie.review_set.length : 0 }})</h3>
+            <div class="reviews-actions">
               <button 
                 v-if="authStore.isAuthenticated"
                 @click="goReviewCreate"
-                class="btn btn-sm btn-review-create"
+                class="btn-review-create"
               >
                 리뷰 작성하기
               </button>
               <router-link 
                 :to="{ name: 'movie-reviews', params: { id: movie.tmdb_id } }" 
-                class="btn btn-sm btn-outline-dark"
+                class="btn-view-all"
               >
-                전체보기 &rarr;
+                전체보기 →
               </router-link>
             </div>
           </div>
 
-          <div v-if="!movie.review_set || movie.review_set.length === 0" class="alert alert-light text-center border py-4">
-            <p class="text-muted mb-0">아직 작성된 리뷰가 없습니다. 첫 번째 리뷰를 남겨보세요!</p>
+          <div v-if="!movie.review_set || movie.review_set.length === 0" class="no-reviews">
+            <p>아직 작성된 리뷰가 없습니다. 첫 번째 리뷰를 남겨보세요!</p>
           </div>
 
-          <div v-else class="row">
+          <div v-else class="reviews-grid">
             <div
               v-for="review in movie.review_set.slice(0, 3)"
               :key="review.id"
-              class="col-md-4 mb-3"
+              class="review-card"
+              @click="$router.push({ name: 'review-detail', params: { id: movie.tmdb_id, reviewId: review.id } })"
             >
-              <div 
-                class="card h-100 shadow-sm hover-effect border-0 bg-light"
-                style="cursor: pointer;"
-                @click="$router.push({ name: 'review-detail', params: { id: movie.tmdb_id, reviewId: review.id } })"
-              >
-                <div class="card-body">
-                  <div class="d-flex justify-content-between align-items-center mb-2">
-                    <span class="badge bg-warning text-dark small">★ {{ review.rank }}</span>
-                    <small class="text-muted">{{ formatDate(review.created_at) }}</small>
-                  </div>
-                  <h5 class="card-title text-truncate fw-bold">{{ review.title }}</h5>
-                  <p class="card-text text-muted small text-break" style="display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;">
-                    {{ review.content }}
-                  </p>
-                  <div class="d-flex justify-content-between align-items-center mt-3 pt-2 border-top">
-                    <span class="small fw-bold">by {{ review.user_nickname || review.user }}</span>
-                    <div class="small text-muted">
-                      <span class="me-2">❤ {{ review.like_count || 0 }}</span>
-                      <span>💬 {{ review.comments ? review.comments.length : 0 }}</span>
-                    </div>
-                  </div>
+              <div class="review-header">
+                <span class="review-rating">★ {{ review.rank }}</span>
+                <span class="review-date">{{ formatDate(review.created_at) }}</span>
+              </div>
+              <h4 class="review-title">{{ review.title }}</h4>
+              <p class="review-content">{{ review.content }}</p>
+              <div class="review-footer">
+                <span class="review-author">by {{ review.user_nickname || review.user }}</span>
+                <div class="review-stats">
+                  <span>❤ {{ review.like_count || 0 }}</span>
+                  <span>💬 {{ review.comments ? review.comments.length : 0 }}</span>
                 </div>
               </div>
             </div>
           </div>
         </div>
-
       </div>
+    </div>
 
-      <div v-else class="alert alert-info">
-        영화 정보를 찾을 수 없습니다.
-      </div>
+    <div v-else class="error-message">
+      영화 정보를 찾을 수 없습니다.
     </div>
   </div>
 </template>
@@ -169,6 +214,7 @@ import { ref, onMounted, computed } from 'vue' // computed 추가
 import { useRoute, useRouter } from 'vue-router'
 import axios from 'axios'
 import { useAuthStore } from '@/stores/auth'
+import noImgPeople from '@/assets/no_img_people.png'
 
 export default {
   name: 'MovieDetailView',
@@ -264,11 +310,130 @@ export default {
       }
     }
 
+    const scrollToReviews = () => {
+      const reviewsSection = document.getElementById('reviews-section')
+      if (reviewsSection) {
+        reviewsSection.scrollIntoView({ behavior: 'smooth', block: 'start' })
+      }
+    }
+
+    const scrollToTrailer = () => {
+      const trailerSection = document.getElementById('trailer-section')
+      if (trailerSection) {
+        trailerSection.scrollIntoView({ behavior: 'smooth', block: 'start' })
+      }
+    }
+
     const getImageUrl = (path, type = 'poster') => {
       if (!path) return type === 'actor' ? '/assets/no-profile.png' : '/assets/no-poster.png'
       const size = type === 'actor' ? 'w185' : 'w500'
       return `https://image.tmdb.org/t/p/${size}${path}`
     }
+
+    const getBackdropUrl = (path) => {
+      if (!path) return 'https://image.tmdb.org/t/p/w1280/kqjL17yufvn9OVLyXYpvtyrFfak.jpg'
+      return `https://image.tmdb.org/t/p/w1280${path}`
+    }
+
+    const getYear = (dateString) => {
+      if (!dateString) return ''
+      return new Date(dateString).getFullYear()
+    }
+
+    const formatRuntime = (minutes) => {
+      if (!minutes) return ''
+      const hours = Math.floor(minutes / 60)
+      const mins = minutes % 60
+      if (hours > 0) {
+        return `${hours}시간 ${mins}분`
+      }
+      return `${mins}분`
+    }
+
+    const getRatingText = (rating) => {
+      if (!rating) return 'ALL'
+      if (rating >= 19) return '19'
+      if (rating >= 15) return '15'
+      if (rating >= 12) return '12'
+      return 'ALL'
+    }
+
+    const formatVoteCount = (count) => {
+      if (!count) return ''
+      if (count >= 10000) {
+        return `${(count / 10000).toFixed(1)}만명`
+      }
+      return `${count}명`
+    }
+
+    // 별점 분포 계산 (vote_average를 기반으로 가상 분포 생성)
+    const ratingDistribution = computed(() => {
+      if (!movie.value || !movie.value.vote_average) {
+        return []
+      }
+
+      const avg = movie.value.vote_average / 2 // TMDB는 10점 만점이므로 5점 만점으로 변환
+      const ratings = [0.5, 1, 1.5, 2, 2.5, 3, 3.5, 4, 4.5, 5]
+      
+      // 평균을 중심으로 정규분포 형태의 가상 데이터 생성
+      const distribution = ratings.map(rating => {
+        // 평균에 가까울수록 높은 값 (정규분포 형태)
+        const distance = Math.abs(rating - avg)
+        // 표준편차를 1.0으로 가정한 정규분포
+        const stdDev = 1.0
+        const exponent = -0.5 * Math.pow(distance / stdDev, 2)
+        const percentage = Math.max(10, Math.exp(exponent) * 100)
+        return {
+          rating: rating.toFixed(1),
+          percentage: percentage
+        }
+      })
+
+      // 가장 높은 막대를 찾아서 정규화 (최대값을 100%로)
+      const maxPercentage = Math.max(...distribution.map(d => d.percentage))
+      return distribution.map(d => ({
+        ...d,
+        percentage: maxPercentage > 0 ? (d.percentage / maxPercentage) * 100 : 0
+      }))
+    })
+
+    // 출연/제작진을 8개씩 페이지로 나누기 (2열 4행)
+    const castPages = computed(() => {
+      if (!movie.value) return []
+      
+      const castList = []
+      
+      // 감독 추가
+      if (movie.value.director) {
+        castList.push({
+          key: 'director',
+          name: movie.value.director,
+          role: '감독',
+          profile_path: null
+        })
+      }
+      
+      // 배우 추가
+      if (movie.value.actors && Array.isArray(movie.value.actors)) {
+        movie.value.actors.forEach(actor => {
+          castList.push({
+            key: `actor-${actor.name}`,
+            name: actor.name,
+            role: '주연',
+            character: actor.character,
+            profile_path: actor.profile_path
+          })
+        })
+      }
+      
+      // 8개씩 페이지로 나누기
+      const pages = []
+      for (let i = 0; i < castList.length; i += 8) {
+        pages.push(castList.slice(i, i + 8))
+      }
+      
+      return pages
+    })
 
     const fetchTrailer = async (query) => {
       const YOUTUBE_API_KEY = import.meta.env.VITE_YOUTUBE_API_KEY
@@ -359,80 +524,721 @@ export default {
       trailerVideoId,
       authStore,
       getImageUrl,
+      getBackdropUrl,
+      getYear,
+      formatRuntime,
+      getRatingText,
+      formatVoteCount,
       formatDate,
       goReviewDetail,
       goReviewCreate,
-      // [추가] 찜하기 관련 반환
       isLiked,
       likeCount,
-      toggleLike
+      toggleLike,
+      ratingDistribution,
+      castPages,
+      scrollToReviews,
+      scrollToTrailer,
+      noImgPeople
     }
   }
 }
 </script>
 
 <style scoped>
-/* [추가] 찜하기 버튼 스타일 */
-.btn-like {
-  background: none;
-  border: 1px solid #ddd;
-  border-radius: 50px; /* 둥근 버튼 */
-  padding: 0.3rem 0.8rem;
-  font-size: 1.2rem;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  display: flex;
-  align-items: center;
-  gap: 0.3rem;
-  height: 40px;
-}
-
-.btn-like:hover {
-  background-color: #f8f9fa;
-  transform: scale(1.05);
-  border-color: #000;
-}
-
-.btn-like.liked {
-  border-color: #ff4757;
-  background-color: #fff0f1;
-}
-
-.heart-icon {
-  line-height: 1;
-  font-size: 1.3rem;
-}
-
-.like-count {
-  font-size: 1rem;
-  font-weight: bold;
-  color: #555;
-}
-
-/* 기존 스타일 그대로 유지 */
 .movie-detail-container {
   min-height: calc(100vh - 80px);
-  background-color: #ffffff;
-  padding: 3rem 0;
-  color: #000000;
+  background-color: #000000;
+  color: #ffffff;
 }
-/* ... (나머지 스타일 생략 - 기존과 동일) ... */
-.loading-spinner { padding: 5rem 0; }
-.movie-poster-large { width: 100%; max-width: 400px; height: auto; border: 1px solid #000000; box-shadow: 10px 10px 0px rgba(0,0,0,0.1); }
-.movie-title { font-size: 2.5rem; font-weight: bold; color: #000000; margin-bottom: 0; /* margin 수정 */ }
-.movie-original-title { font-size: 1.2rem; color: #666666; margin-bottom: 2rem; }
-.movie-overview { font-size: 1.1rem; line-height: 1.8; color: #000000; margin-bottom: 2rem; }
-.movie-meta { display: flex; flex-wrap: wrap; gap: 1.5rem; margin-top: 2rem; padding: 1rem; border: 1px solid #000; background: #f8f9fa; }
-.meta-item { font-weight: bold; }
-.section-title { font-size: 1.8rem; font-weight: bold; border-bottom: 2px solid #000; padding-bottom: 0.5rem; margin-bottom: 1.5rem; }
-.video-container { position: relative; padding-bottom: 56.25%; height: 0; overflow: hidden; border: 1px solid #000; }
-.video-container iframe { position: absolute; top: 0; left: 0; width: 100%; height: 100%; }
-.alert-info { background-color: #ffffff; border: 1px solid #000000; color: #000000; padding: 2rem; text-align: center; }
-.actor-img { width: 80px; height: 80px; object-fit: cover; border-radius: 50%; border: 1px solid #ddd; margin-bottom: 5px; }
-.actor-card { width: 90px; }
-.director-name { font-size: 1.1rem; }
-.x-small { font-size: 0.8rem; }
-.btn-review-create { border: none !important; outline: none !important; box-shadow: none !important; color: #000000; transition: opacity 0.2s ease; }
-.btn-review-create:hover { opacity: 0.7; }
-@media (max-width: 768px) { .movie-title { font-size: 1.8rem; } .movie-poster-large { margin-bottom: 2rem; } }
+
+.loading-spinner {
+  padding: 5rem 0;
+  text-align: center;
+}
+
+.error-message {
+  padding: 5rem 2rem;
+  text-align: center;
+  color: #ffffff;
+  font-size: 1.2rem;
+}
+
+/* 폰트 정의 */
+@font-face {
+  font-family: 'Aggravo';
+  src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_2108@1.1/SBAggroL.woff') format('woff');
+  font-weight: 300;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Aggravo';
+  src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_2108@1.1/SBAggroM.woff') format('woff');
+  font-weight: 500;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Aggravo';
+  src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_2108@1.1/SBAggroB.woff') format('woff');
+  font-weight: 700;
+  font-display: swap;
+}
+
+/* 히어로 섹션 */
+.hero-section {
+  position: relative;
+  width: 100%;
+  min-height: 500px;
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  display: flex;
+  align-items: flex-end;
+  padding: 4rem 2rem 4rem 2rem;
+}
+
+.hero-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(
+    to bottom,
+    rgba(0, 0, 0, 0.3) 0%,
+    rgba(0, 0, 0, 0.6) 50%,
+    rgba(0, 0, 0, 0.9) 100%
+  );
+}
+
+.hero-content {
+  position: relative;
+  z-index: 2;
+  max-width: 1330px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+.hero-title {
+  font-size: 4rem;
+  font-weight: bold;
+  color: #ffffff;
+  margin-bottom: 1rem;
+  text-shadow: 2px 2px 8px rgba(0, 0, 0, 0.8);
+}
+
+.hero-subtitle {
+  font-size: 1.5rem;
+  color: #ffffff;
+  margin-bottom: 1.5rem;
+  opacity: 0.9;
+}
+
+.hero-meta {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 1.1rem;
+  color: #ffffff;
+  margin-bottom: 1rem;
+  flex-wrap: wrap;
+}
+
+.meta-year,
+.meta-genres,
+.meta-country {
+  color: #ffffff;
+}
+
+.meta-separator {
+  color: #ffffff;
+  opacity: 0.7;
+}
+
+.hero-details {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 1rem;
+  color: #ffffff;
+  flex-wrap: wrap;
+}
+
+.detail-item,
+.detail-rating {
+  color: #ffffff;
+}
+
+.detail-separator {
+  color: #ffffff;
+  opacity: 0.7;
+}
+
+/* 평점 및 액션 섹션 (줄거리 위) */
+.rating-action-section {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2rem;
+  padding-bottom: 1.5rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.action-buttons-group {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.rating-info {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.rating-value {
+  font-family: 'Aggravo', sans-serif;
+  font-size: 3.2rem;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.9);
+  line-height: 1;
+  margin-bottom: 0.5rem;
+}
+
+.rating-label {
+  font-size: 1rem;
+  color: rgba(255, 255, 255, 0.9);
+  font-weight: 400;
+}
+
+.action-btn {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  padding: 1rem 2.5rem;
+  background-color: rgba(25, 25, 25, 0.7);
+  border: none !important;
+  outline: none !important;
+  color: #ffffff;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-size: 0.95rem;
+  min-width: 160px;
+  width: auto;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+  position: relative;
+  overflow: hidden;
+  backdrop-filter: blur(10px);
+}
+
+.action-btn:focus,
+.action-btn:focus-visible,
+.action-btn:active {
+  border: none !important;
+  outline: none !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+}
+
+.action-btn::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.08) 0%, rgba(255, 255, 255, 0.02) 50%, rgba(255, 255, 255, 0) 100%);
+  pointer-events: none;
+  opacity: 0.7;
+}
+
+.action-btn::after {
+  content: '';
+  position: absolute;
+  top: 1px;
+  left: 1px;
+  right: 1px;
+  height: 50%;
+  background: linear-gradient(to bottom, rgba(255, 255, 255, 0.1), transparent);
+  border-radius: 12px 12px 0 0;
+  pointer-events: none;
+}
+
+.action-btn:hover {
+  background-color: rgba(30, 30, 30, 0.8);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+}
+
+.action-btn.active {
+  background-color: rgba(25, 25, 25, 0.7);
+}
+
+.action-btn.active::before {
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.08) 0%, rgba(255, 255, 255, 0.02) 50%, rgba(255, 255, 255, 0) 100%);
+  opacity: 0.7;
+}
+
+.action-icon {
+  font-size: 1.5rem;
+  font-weight: 300;
+  line-height: 1;
+  color: rgba(255, 255, 255, 0.95);
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.5), 0 0 1px rgba(255, 255, 255, 0.3);
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.4));
+  opacity: 0.9;
+  position: relative;
+  z-index: 1;
+}
+
+.action-text {
+  font-size: 0.95rem;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.95);
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.5), 0 0 1px rgba(255, 255, 255, 0.2);
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.4));
+  opacity: 0.9;
+  position: relative;
+  z-index: 1;
+}
+
+/* 메인 콘텐츠 */
+.main-content-wrapper {
+  max-width: 1330px;
+  margin: 0 auto;
+  padding: 3rem 2rem;
+}
+
+/* 포스터 및 줄거리 레이아웃 */
+.poster-synopsis-layout {
+  display: flex;
+  gap: 3rem;
+  margin-bottom: 4rem;
+  align-items: flex-start;
+}
+
+.poster-container {
+  flex-shrink: 0;
+}
+
+.movie-poster {
+  width: 100%;
+  max-width: 400px;
+  height: auto;
+  border-radius: 8px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+  margin-bottom: 2rem;
+}
+
+
+.synopsis-section {
+  color: #ffffff;
+}
+
+.synopsis-title {
+  font-size: 1.8rem;
+  font-weight: bold;
+  color: #ffffff;
+  margin-bottom: 1.5rem;
+  line-height: 1.4;
+}
+
+.synopsis-text {
+  font-size: 1rem;
+  color: #cccccc;
+  line-height: 1.8;
+  white-space: pre-wrap;
+}
+
+/* 출연/제작 섹션 */
+.cast-crew-section {
+  color: #ffffff;
+  margin-top: 4rem;
+}
+
+.cast-crew-section .section-title {
+  font-size: 2rem;
+  font-weight: bold;
+  color: #ffffff;
+  margin-bottom: 2rem;
+  padding-bottom: 1.5rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+/* 출연/제작 Carousel */
+#castCarousel {
+  position: relative;
+  width: 100%;
+}
+
+#castCarousel .carousel-inner {
+  padding: 0;
+}
+
+#castCarousel .carousel-item {
+  padding: 0;
+}
+
+.cast-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  grid-template-rows: repeat(2, 1fr);
+  gap: 2rem;
+  min-height: 400px;
+}
+
+/* Carousel Indicators */
+#castCarousel .carousel-indicators {
+  margin-bottom: 2rem;
+  z-index: 3;
+}
+
+/* Carousel Controls */
+#castCarousel .carousel-control-prev,
+#castCarousel .carousel-control-next {
+  width: 5%;
+  opacity: 0.5;
+  transition: opacity 0.15s ease;
+  z-index: 3;
+}
+
+#castCarousel .carousel-control-prev:hover,
+#castCarousel .carousel-control-next:hover {
+  opacity: 0.75;
+}
+
+#castCarousel .carousel-control-prev-icon,
+#castCarousel .carousel-control-next-icon {
+  width: 2rem;
+  height: 2rem;
+}
+
+.cast-item {
+  display: flex;
+  gap: 1.5rem;
+  align-items: flex-start;
+}
+
+.cast-avatar {
+  width: 100px;
+  height: 100px;
+  border-radius: 8px;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.cast-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.cast-no-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.cast-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.cast-name {
+  font-size: 1.2rem;
+  font-weight: bold;
+  color: #ffffff;
+  margin-bottom: 0.5rem;
+}
+
+.cast-role {
+  font-size: 1rem;
+  color: #cccccc;
+  margin-bottom: 0.5rem;
+}
+
+.cast-character {
+  font-size: 0.95rem;
+  color: #999999;
+}
+
+/* 예고편 섹션 */
+.trailer-section {
+  margin-bottom: 4rem;
+}
+
+.trailer-section .section-title {
+  font-size: 2rem;
+  font-weight: bold;
+  color: #ffffff;
+  margin-bottom: 2rem;
+  padding-bottom: 1.5rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.video-container {
+  position: relative;
+  padding-bottom: 45%;
+  height: 0;
+  overflow: hidden;
+  border-radius: 8px;
+  background-color: #1a1a1a;
+  width: 80%;
+  margin: 0 auto;
+}
+
+.video-container iframe {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+}
+
+/* 리뷰 섹션 */
+.reviews-section {
+  margin-top: 4rem;
+}
+
+.reviews-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2rem;
+  flex-wrap: wrap;
+  gap: 1rem;
+  padding-bottom: 1.5rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.reviews-section .section-title {
+  font-size: 2rem;
+  font-weight: bold;
+  color: #ffffff;
+  margin-bottom: 0;
+}
+
+.reviews-actions {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+}
+
+.btn-review-create {
+  padding: 0.5rem 1.5rem;
+  background-color: transparent;
+  color: #999999;
+  border: none !important;
+  outline: none !important;
+  box-shadow: none !important;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  transition: all 0.3s ease;
+}
+
+.btn-review-create:hover {
+  color: #cccccc;
+  border: none !important;
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+.btn-review-create:focus {
+  border: none !important;
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+.btn-review-create:active {
+  border: none !important;
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+.btn-view-all {
+  padding: 0.5rem 1.5rem;
+  background-color: transparent;
+  color: #999999;
+  border: none;
+  border-radius: 4px;
+  text-decoration: none;
+  font-size: 0.9rem;
+  transition: all 0.3s ease;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.btn-view-all:hover {
+  color: #cccccc;
+}
+
+.no-reviews {
+  text-align: center;
+  padding: 3rem 0;
+  color: #cccccc;
+}
+
+.reviews-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 1.5rem;
+}
+
+.review-card {
+  background-color: #1a1a1a;
+  padding: 1.5rem;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.review-card:hover {
+  background-color: #252525;
+  transform: translateY(-4px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.review-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.review-rating {
+  color: #ffc107;
+  font-weight: bold;
+}
+
+.review-date {
+  color: #999999;
+  font-size: 0.85rem;
+}
+
+.review-title {
+  font-size: 1.1rem;
+  font-weight: bold;
+  color: #ffffff;
+  margin-bottom: 0.75rem;
+}
+
+.review-content {
+  font-size: 0.95rem;
+  color: #cccccc;
+  line-height: 1.6;
+  margin-bottom: 1rem;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.review-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-top: 1rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.review-author {
+  font-size: 0.85rem;
+  color: #ffffff;
+  font-weight: 500;
+}
+
+.review-stats {
+  display: flex;
+  gap: 1rem;
+  font-size: 0.85rem;
+  color: #999999;
+}
+
+/* 반응형 디자인 */
+@media (max-width: 1200px) {
+  .poster-synopsis-layout {
+    flex-direction: column;
+  }
+
+  .cast-grid {
+    grid-template-columns: repeat(4, 1fr);
+    grid-template-rows: repeat(2, 1fr);
+    gap: 1.5rem;
+    min-height: auto;
+  }
+}
+
+@media (max-width: 768px) {
+  .hero-section {
+    min-height: 400px;
+    padding: 2rem 1rem 6rem 1rem;
+  }
+
+  .hero-title {
+    font-size: 2.5rem;
+  }
+
+  .hero-subtitle {
+    font-size: 1.2rem;
+  }
+
+  .rating-action-section {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1.5rem;
+  }
+
+  .action-btn {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .cast-grid {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto;
+    gap: 1.5rem;
+    min-height: auto;
+  }
+
+  .main-content-wrapper {
+    padding: 2rem 1rem;
+  }
+
+  .poster-synopsis-layout {
+    flex-direction: column;
+    gap: 2rem;
+  }
+
+  .cast-grid {
+    grid-template-columns: repeat(2, 1fr);
+    grid-template-rows: auto;
+    gap: 1.5rem;
+  }
+
+  .cast-avatar {
+    width: 80px;
+    height: 80px;
+  }
+
+
+  .cast-name {
+    font-size: 1rem;
+  }
+
+  .reviews-grid {
+    grid-template-columns: 1fr;
+  }
+}
 </style>
